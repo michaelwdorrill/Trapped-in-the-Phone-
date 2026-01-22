@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
-import { GAME_W, CUTSCENE_HOLD_MS, CUTSCENE_WIPE_MS } from '../config/constants';
+import { GAME_W, GAME_H, CUTSCENE_HOLD_MS, CUTSCENE_WIPE_MS } from '../config/constants';
 import { LAYOUT } from '../config/layout';
 import { GameState } from '../state/GameState';
+import { InputLock } from '../utils/InputLock';
 import { BackgroundScene } from './BackgroundScene';
 import { OverlayScene } from './OverlayScene';
 
@@ -97,7 +98,7 @@ export class IntroCutsceneScene extends Phaser.Scene {
       duration: CUTSCENE_WIPE_MS,
       ease: 'Linear',
       onUpdate: (tween) => {
-        const value = Math.floor(tween.getValue());
+        const value = Math.floor(tween.getValue() ?? 0);
         nextSlide.setCrop(0, 0, value, nextSlide.height);
       },
       onComplete: () => {
@@ -121,9 +122,30 @@ export class IntroCutsceneScene extends Phaser.Scene {
     // Mark cutscene as seen
     GameState.hasSeenIntroCutscene = true;
 
-    // Transition to start menu
-    const overlayScene = this.scene.get('OverlayScene') as OverlayScene;
-    overlayScene.transitionTo('StartMenuScene');
+    // Lock input during transition
+    InputLock.lock();
+
+    // Create a black rectangle for wipe transition
+    const blackRect = this.add.rectangle(0, GAME_H / 2, 0, GAME_H, 0x000000);
+    blackRect.setOrigin(0, 0.5);
+    blackRect.setDepth(100);
+
+    // Wipe black in from left
+    this.tweens.add({
+      targets: blackRect,
+      width: GAME_W,
+      duration: CUTSCENE_WIPE_MS,
+      ease: 'Linear',
+      onComplete: () => {
+        // Switch to start menu scene directly
+        this.scene.stop('IntroCutsceneScene');
+        this.scene.start('StartMenuScene');
+
+        // Fade out the overlay's black rectangle (it starts visible)
+        const overlayScene = this.scene.get('OverlayScene') as OverlayScene;
+        overlayScene.fadeFromBlack();
+      },
+    });
   }
 
   shutdown(): void {
