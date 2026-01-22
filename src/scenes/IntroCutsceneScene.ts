@@ -125,6 +125,9 @@ export class IntroCutsceneScene extends Phaser.Scene {
     // Lock input during transition
     InputLock.lock();
 
+    // Get overlay scene reference BEFORE stopping this scene
+    const overlayScene = this.scene.get('OverlayScene') as OverlayScene;
+
     // Create a black rectangle for wipe transition
     const blackRect = this.add.rectangle(0, GAME_H / 2, 0, GAME_H, 0x000000);
     blackRect.setOrigin(0, 0.5);
@@ -137,12 +140,11 @@ export class IntroCutsceneScene extends Phaser.Scene {
       duration: CUTSCENE_WIPE_MS,
       ease: 'Linear',
       onComplete: () => {
-        // Switch to start menu scene directly
-        this.scene.stop('IntroCutsceneScene');
+        // Start the new scene first, then stop this one
         this.scene.start('StartMenuScene');
+        this.scene.stop('IntroCutsceneScene');
 
-        // Fade out the overlay's black rectangle (it starts visible)
-        const overlayScene = this.scene.get('OverlayScene') as OverlayScene;
+        // Fade out the overlay's black rectangle
         overlayScene.fadeFromBlack();
       },
     });
