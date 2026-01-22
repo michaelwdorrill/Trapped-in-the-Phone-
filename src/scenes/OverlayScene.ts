@@ -108,4 +108,21 @@ export class OverlayScene extends Phaser.Scene {
       });
     });
   }
+
+  // Called when transitioning from cutscene (which does its own wipe to black)
+  fadeFromBlack(): void {
+    // Set to full black first
+    this.fadeRect.setAlpha(1);
+
+    // Fade out
+    this.tweens.add({
+      targets: this.fadeRect,
+      alpha: 0,
+      duration: FADE_MS,
+      ease: 'Linear',
+      onComplete: () => {
+        InputLock.unlock();
+      },
+    });
+  }
 }
