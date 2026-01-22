@@ -9,7 +9,7 @@ export class IntroCutsceneScene extends Phaser.Scene {
   private slides: Phaser.GameObjects.Image[] = [];
   private currentSlideIndex: number = 0;
   private isSkipping: boolean = false;
-  private timeline: Phaser.Time.TimerEvent | null = null;
+  private isEnding: boolean = false;
 
   constructor() {
     super({ key: 'IntroCutsceneScene' });
@@ -17,6 +17,7 @@ export class IntroCutsceneScene extends Phaser.Scene {
 
   create(): void {
     this.isSkipping = false;
+    this.isEnding = false;
     this.currentSlideIndex = 0;
     this.slides = [];
 
@@ -39,48 +40,51 @@ export class IntroCutsceneScene extends Phaser.Scene {
     // Set up skip listener
     this.input.on('pointerdown', this.onTap, this);
 
-    // Start the slideshow
-    this.startSlideshow();
+    // Start the slideshow - timer starts after fade-in is complete
+    this.scheduleNextTransition();
   }
 
   private onTap(): void {
     // Only allow skip if cutscene has been seen before
-    if (GameState.hasSeenIntroCutscene && !this.isSkipping) {
+    if (GameState.hasSeenIntroCutscene && !this.isSkipping && !this.isEnding) {
       this.skipCutscene();
     }
   }
 
   private skipCutscene(): void {
     this.isSkipping = true;
-
-    // Cancel any ongoing timeline
-    if (this.timeline) {
-      this.timeline.remove();
-      this.timeline = null;
-    }
+    this.tweens.killAll();
+    this.time.removeAllEvents();
 
     // Transition to start menu
     const overlayScene = this.scene.get('OverlayScene') as OverlayScene;
     overlayScene.transitionTo('StartMenuScene');
   }
 
-  private startSlideshow(): void {
-    // Show slide 1 for CUTSCENE_HOLD_MS
+  private scheduleNextTransition(): void {
+    if (this.isSkipping || this.isEnding) return;
+
+    // After showing current slide for CUTSCENE_HOLD_MS, move to next
     this.time.delayedCall(CUTSCENE_HOLD_MS, () => {
-      if (this.isSkipping) return;
-      this.wipeToSlide(1);
+      if (this.isSkipping || this.isEnding) return;
+
+      const nextIndex = this.currentSlideIndex + 1;
+
+      if (nextIndex >= this.slides.length) {
+        // No more slides, end the cutscene
+        this.endCutscene();
+      } else {
+        // Wipe to next slide
+        this.wipeToSlide(nextIndex);
+      }
     });
   }
 
-  private wipeToSlide(slideIndex: number): void {
-    if (this.isSkipping || slideIndex >= this.slides.length) {
-      // End of cutscene
-      this.endCutscene();
-      return;
-    }
+  private wipeToSlide(nextIndex: number): void {
+    if (this.isSkipping || this.isEnding) return;
 
     const currentSlide = this.slides[this.currentSlideIndex];
-    const nextSlide = this.slides[slideIndex];
+    const nextSlide = this.slides[nextIndex];
 
     // Position next slide and make visible, but crop it initially
     nextSlide.setVisible(true);
@@ -93,28 +97,26 @@ export class IntroCutsceneScene extends Phaser.Scene {
       duration: CUTSCENE_WIPE_MS,
       ease: 'Linear',
       onUpdate: (tween) => {
-        const rawValue = tween.getValue();
-        const value = Math.floor(rawValue ?? 0);
+        const value = Math.floor(tween.getValue());
         nextSlide.setCrop(0, 0, value, nextSlide.height);
       },
       onComplete: () => {
-        if (this.isSkipping) return;
+        if (this.isSkipping || this.isEnding) return;
 
-        // Hide previous slide
+        // Hide previous slide and clear crop on new slide
         currentSlide.setVisible(false);
-        this.currentSlideIndex = slideIndex;
+        nextSlide.setCrop();
+        this.currentSlideIndex = nextIndex;
 
-        // Show current slide for CUTSCENE_HOLD_MS, then wipe to next
-        this.time.delayedCall(CUTSCENE_HOLD_MS, () => {
-          if (this.isSkipping) return;
-          this.wipeToSlide(slideIndex + 1);
-        });
+        // Schedule next transition
+        this.scheduleNextTransition();
       },
     });
   }
 
   private endCutscene(): void {
-    if (this.isSkipping) return;
+    if (this.isEnding) return;
+    this.isEnding = true;
 
     // Mark cutscene as seen
     GameState.hasSeenIntroCutscene = true;
@@ -126,9 +128,7 @@ export class IntroCutsceneScene extends Phaser.Scene {
 
   shutdown(): void {
     this.input.off('pointerdown', this.onTap, this);
-    if (this.timeline) {
-      this.timeline.remove();
-      this.timeline = null;
-    }
+    this.tweens.killAll();
+    this.time.removeAllEvents();
   }
 }

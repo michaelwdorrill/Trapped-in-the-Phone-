@@ -10,7 +10,7 @@ export const BG_SCROLL_X_PX_PER_SEC = 12;
 export const BG_SCROLL_Y_PX_PER_SEC = 20;
 
 // Cutscene timing
-export const CUTSCENE_HOLD_MS = 5000;
+export const CUTSCENE_HOLD_MS = 8000;
 export const CUTSCENE_WIPE_MS = 1000;
 
 // Title card pulse animation
