@@ -3,6 +3,7 @@ const STORAGE_KEYS = {
   SFX_VOLUME: 'trapped_sfxVolume',
   HAS_SEEN_INTRO: 'trapped_hasSeenIntroCutscene',
   SELECTED_CHARACTER: 'trapped_selectedCharacter',
+  PLAYER_NAME: 'trapped_playerName',
 };
 
 class GameStateClass {
@@ -12,6 +13,7 @@ class GameStateClass {
   private _sfxVolume: number = 0.74;
   private _hasSeenIntroCutscene: boolean = false;
   private _isMaximized: boolean = false;
+  private _playerName: string = '';
 
   constructor() {
     this.loadFromStorage();
@@ -37,6 +39,11 @@ class GameStateClass {
       const selectedChar = localStorage.getItem(STORAGE_KEYS.SELECTED_CHARACTER);
       if (selectedChar !== null) {
         this._selectedCharacterId = selectedChar;
+      }
+
+      const playerName = localStorage.getItem(STORAGE_KEYS.PLAYER_NAME);
+      if (playerName !== null) {
+        this._playerName = playerName;
       }
     } catch (e) {
       console.warn('Failed to load from localStorage:', e);
@@ -101,6 +108,15 @@ class GameStateClass {
 
   set isMaximized(value: boolean) {
     this._isMaximized = value;
+  }
+
+  get playerName(): string {
+    return this._playerName;
+  }
+
+  set playerName(value: string) {
+    this._playerName = value;
+    this.saveToStorage(STORAGE_KEYS.PLAYER_NAME, value);
   }
 }
 

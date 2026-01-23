@@ -6,6 +6,7 @@ import { GameState } from '../state/GameState';
 import { AudioManager } from '../audio/AudioManager';
 import { InputLock } from '../utils/InputLock';
 import { ImageButton } from '../ui/ImageButton';
+import { NativeTextInput } from '../ui/NativeTextInput';
 import { spawnRainbowBurst } from '../fx/RainbowBurst';
 import { BackgroundScene } from './BackgroundScene';
 import { OverlayScene } from './OverlayScene';
@@ -16,6 +17,7 @@ export class CharacterSelectScene extends Phaser.Scene {
   private leftArrowBtn!: ImageButton;
   private rightArrowBtn!: ImageButton;
   private selectBtn!: ImageButton;
+  private nameInput!: NativeTextInput;
   private isAnimating: boolean = false;
 
   constructor() {
@@ -47,6 +49,22 @@ export class CharacterSelectScene extends Phaser.Scene {
       LAYOUT.characterSelect.title.y,
       'cs_title'
     ).setOrigin(0.5, 0.5);
+
+    // Name input field
+    const nameLayout = LAYOUT.characterSelect.nameInput;
+    this.nameInput = new NativeTextInput({
+      scene: this,
+      x: nameLayout.x,
+      y: nameLayout.y,
+      width: nameLayout.width,
+      height: nameLayout.height,
+      placeholder: 'Enter your name...',
+      maxLength: 12,
+      initialValue: GameState.playerName,
+      onChange: (value) => {
+        GameState.playerName = value;
+      },
+    });
 
     // Background frame
     this.add.image(
@@ -152,5 +170,6 @@ export class CharacterSelectScene extends Phaser.Scene {
     this.leftArrowBtn.destroy();
     this.rightArrowBtn.destroy();
     this.selectBtn.destroy();
+    this.nameInput.destroy();
   }
 }
