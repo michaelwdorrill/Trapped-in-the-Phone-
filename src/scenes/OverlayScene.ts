@@ -125,4 +125,26 @@ export class OverlayScene extends Phaser.Scene {
       },
     });
   }
+
+  // Called by cutscene after its wipe-to-black completes
+  completeWipeTransition(nextSceneKey: string): void {
+    // Stop the cutscene scene
+    this.scene.stop('IntroCutsceneScene');
+
+    // Start the new scene
+    this.scene.start(nextSceneKey);
+
+    // Set overlay to black and fade out
+    this.fadeRect.setAlpha(1);
+
+    this.tweens.add({
+      targets: this.fadeRect,
+      alpha: 0,
+      duration: FADE_MS,
+      ease: 'Linear',
+      onComplete: () => {
+        InputLock.unlock();
+      },
+    });
+  }
 }

@@ -142,12 +142,8 @@ export class IntroCutsceneScene extends Phaser.Scene {
       duration: CUTSCENE_WIPE_MS,
       ease: 'Linear',
       onComplete: () => {
-        // Start the new scene first, then stop this one
-        this.scene.start('StartMenuScene');
-        this.scene.stop('IntroCutsceneScene');
-
-        // Fade out the overlay's black rectangle
-        overlayScene.fadeFromBlack();
+        // Use the overlay scene to handle the transition (since it persists)
+        overlayScene.completeWipeTransition('StartMenuScene');
       },
     });
   }
