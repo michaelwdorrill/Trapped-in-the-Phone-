@@ -8,6 +8,9 @@ export class OverlayScene extends Phaser.Scene {
   private fadeRect!: Phaser.GameObjects.Rectangle;
   private maximizeBtn!: Phaser.GameObjects.Image;
   private isTransitioning: boolean = false;
+  private sceneSwitchPending: boolean = false;
+  private pendingSceneKey: string = '';
+  private pendingData?: object;
 
   constructor() {
     super({ key: 'OverlayScene' });
@@ -57,6 +60,9 @@ export class OverlayScene extends Phaser.Scene {
     // Prevent multiple simultaneous transitions
     if (this.isTransitioning) return;
     this.isTransitioning = true;
+    this.sceneSwitchPending = true;
+    this.pendingSceneKey = nextSceneKey;
+    this.pendingData = data;
 
     // Lock input immediately
     InputLock.lock();
@@ -68,15 +74,19 @@ export class OverlayScene extends Phaser.Scene {
       duration: FADE_MS,
       ease: 'Linear',
       onComplete: () => {
-        this.performSceneSwitch(nextSceneKey, data);
+        if (this.sceneSwitchPending) {
+          this.sceneSwitchPending = false;
+          this.performSceneSwitch(nextSceneKey, data);
+        }
       },
     });
 
-    // Fallback in case tween doesn't complete
-    this.time.delayedCall(FADE_MS + 50, () => {
-      if (this.fadeRect.alpha < 1) {
+    // Fallback: always trigger scene switch if it hasn't happened yet
+    this.time.delayedCall(FADE_MS + 100, () => {
+      if (this.sceneSwitchPending) {
+        this.sceneSwitchPending = false;
         this.fadeRect.setAlpha(1);
-        this.performSceneSwitch(nextSceneKey, data);
+        this.performSceneSwitch(this.pendingSceneKey, this.pendingData);
       }
     });
   }
