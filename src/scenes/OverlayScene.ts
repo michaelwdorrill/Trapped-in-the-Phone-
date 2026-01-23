@@ -7,6 +7,7 @@ import { InputLock } from '../utils/InputLock';
 export class OverlayScene extends Phaser.Scene {
   private fadeRect!: Phaser.GameObjects.Rectangle;
   private maximizeBtn!: Phaser.GameObjects.Image;
+  private isTransitioning: boolean = false;
 
   constructor() {
     super({ key: 'OverlayScene' });
@@ -52,13 +53,35 @@ export class OverlayScene extends Phaser.Scene {
     this.maximizeBtn.setVisible(visible);
   }
 
-  async transitionTo(nextSceneKey: string, data?: object): Promise<void> {
+  transitionTo(nextSceneKey: string, data?: object): void {
+    // Prevent multiple simultaneous transitions
+    if (this.isTransitioning) return;
+    this.isTransitioning = true;
+
     // Lock input immediately
     InputLock.lock();
 
     // Fade to black
-    await this.fadeIn();
+    this.tweens.add({
+      targets: this.fadeRect,
+      alpha: 1,
+      duration: FADE_MS,
+      ease: 'Linear',
+      onComplete: () => {
+        this.performSceneSwitch(nextSceneKey, data);
+      },
+    });
 
+    // Fallback in case tween doesn't complete
+    this.time.delayedCall(FADE_MS + 50, () => {
+      if (this.fadeRect.alpha < 1) {
+        this.fadeRect.setAlpha(1);
+        this.performSceneSwitch(nextSceneKey, data);
+      }
+    });
+  }
+
+  private performSceneSwitch(nextSceneKey: string, data?: object): void {
     // Stop all content scenes (except Background and Overlay)
     const contentScenes = [
       'LaunchScene',
@@ -79,38 +102,22 @@ export class OverlayScene extends Phaser.Scene {
     this.scene.start(nextSceneKey, data);
 
     // Fade from black
-    await this.fadeOut();
+    this.tweens.add({
+      targets: this.fadeRect,
+      alpha: 0,
+      duration: FADE_MS,
+      ease: 'Linear',
+      onComplete: () => {
+        this.isTransitioning = false;
+        InputLock.unlock();
+      },
+    });
 
-    // Unlock input
-    InputLock.unlock();
-
-    // Fallback: ensure unlock happens
-    this.time.delayedCall(100, () => {
+    // Fallback: ensure unlock and transition flag reset
+    this.time.delayedCall(FADE_MS + 100, () => {
+      this.fadeRect.setAlpha(0);
+      this.isTransitioning = false;
       InputLock.unlock();
-    });
-  }
-
-  private fadeIn(): Promise<void> {
-    return new Promise((resolve) => {
-      this.tweens.add({
-        targets: this.fadeRect,
-        alpha: 1,
-        duration: FADE_MS,
-        ease: 'Linear',
-        onComplete: () => resolve(),
-      });
-    });
-  }
-
-  private fadeOut(): Promise<void> {
-    return new Promise((resolve) => {
-      this.tweens.add({
-        targets: this.fadeRect,
-        alpha: 0,
-        duration: FADE_MS,
-        ease: 'Linear',
-        onComplete: () => resolve(),
-      });
     });
   }
 
