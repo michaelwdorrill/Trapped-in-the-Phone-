@@ -1,8 +1,9 @@
 import Phaser from 'phaser';
-import { TITLE_PULSE_MIN, TITLE_PULSE_MAX, TITLE_PULSE_MS } from '../config/constants';
+import { TITLE_PULSE_MIN, TITLE_PULSE_MAX, TITLE_PULSE_MS, FADE_MS } from '../config/constants';
 import { LAYOUT } from '../config/layout';
 import { GameState } from '../state/GameState';
 import { AudioManager } from '../audio/AudioManager';
+import { InputLock } from '../utils/InputLock';
 import { ImageButton } from '../ui/ImageButton';
 import { BackgroundScene } from './BackgroundScene';
 import { OverlayScene } from './OverlayScene';
@@ -28,6 +29,11 @@ export class StartMenuScene extends Phaser.Scene {
     if (AudioManager.getCurrentBgmKey() !== 'bgm_trapped') {
       AudioManager.playBgm('bgm_trapped', true, false);
     }
+
+    // Force unlock input after fade would complete (safety net)
+    this.time.delayedCall(FADE_MS + 200, () => {
+      InputLock.unlock();
+    });
 
     // Title card with pulse animation
     this.titleCard = this.add.image(
