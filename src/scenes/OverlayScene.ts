@@ -83,6 +83,11 @@ export class OverlayScene extends Phaser.Scene {
 
     // Unlock input
     InputLock.unlock();
+
+    // Fallback: ensure unlock happens
+    this.time.delayedCall(100, () => {
+      InputLock.unlock();
+    });
   }
 
   private fadeIn(): Promise<void> {
@@ -124,6 +129,11 @@ export class OverlayScene extends Phaser.Scene {
         InputLock.unlock();
       },
     });
+
+    // Fallback: ensure unlock happens even if tween fails
+    this.time.delayedCall(FADE_MS + 100, () => {
+      InputLock.unlock();
+    });
   }
 
   // Called by cutscene after its wipe-to-black completes
@@ -137,6 +147,7 @@ export class OverlayScene extends Phaser.Scene {
     // Set overlay to black and fade out
     this.fadeRect.setAlpha(1);
 
+    // Unlock input after fade completes
     this.tweens.add({
       targets: this.fadeRect,
       alpha: 0,
@@ -145,6 +156,11 @@ export class OverlayScene extends Phaser.Scene {
       onComplete: () => {
         InputLock.unlock();
       },
+    });
+
+    // Fallback: ensure unlock happens even if tween fails
+    this.time.delayedCall(FADE_MS + 100, () => {
+      InputLock.unlock();
     });
   }
 }
