@@ -50,12 +50,13 @@ export class PreloadScene extends Phaser.Scene {
   }
 
   create(): void {
-    // Initialize audio manager with this scene
-    AudioManager.init(this);
-
     // Start persistent scenes
     this.scene.launch('BackgroundScene');
     this.scene.launch('OverlayScene');
+
+    // Initialize audio manager with overlay scene (persistent)
+    const overlayScene = this.scene.get('OverlayScene');
+    AudioManager.init(overlayScene);
 
     // Bring overlay to top
     this.scene.bringToTop('OverlayScene');

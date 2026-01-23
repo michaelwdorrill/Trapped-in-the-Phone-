@@ -86,20 +86,22 @@ export class IntroCutsceneScene extends Phaser.Scene {
 
     const currentSlide = this.slides[this.currentSlideIndex];
     const nextSlide = this.slides[nextIndex];
+    const slideWidth = nextSlide.width;
 
-    // Position next slide and make visible, but crop it initially
+    // Position next slide and make visible, but crop it initially (from right edge)
     nextSlide.setVisible(true);
-    nextSlide.setCrop(0, 0, 0, nextSlide.height);
+    nextSlide.setCrop(slideWidth, 0, 0, nextSlide.height);
 
-    // Animate crop width from 0 to full width (wipe from left)
+    // Animate wipe from right to left
     this.tweens.addCounter({
       from: 0,
-      to: GAME_W,
+      to: slideWidth,
       duration: CUTSCENE_WIPE_MS,
       ease: 'Linear',
       onUpdate: (tween) => {
         const value = Math.floor(tween.getValue() ?? 0);
-        nextSlide.setCrop(0, 0, value, nextSlide.height);
+        // Crop starts from (slideWidth - value) with width of value
+        nextSlide.setCrop(slideWidth - value, 0, value, nextSlide.height);
       },
       onComplete: () => {
         if (this.isSkipping || this.isEnding) return;
@@ -128,24 +130,20 @@ export class IntroCutsceneScene extends Phaser.Scene {
     // Get overlay scene reference BEFORE stopping this scene
     const overlayScene = this.scene.get('OverlayScene') as OverlayScene;
 
-    // Create a black rectangle for wipe transition
-    const blackRect = this.add.rectangle(0, GAME_H / 2, 0, GAME_H, 0x000000);
-    blackRect.setOrigin(0, 0.5);
+    // Create a black rectangle for wipe transition (from right)
+    const blackRect = this.add.rectangle(GAME_W, GAME_H / 2, 0, GAME_H, 0x000000);
+    blackRect.setOrigin(1, 0.5);  // Origin on right side
     blackRect.setDepth(100);
 
-    // Wipe black in from left
+    // Wipe black in from right to left
     this.tweens.add({
       targets: blackRect,
       width: GAME_W,
       duration: CUTSCENE_WIPE_MS,
       ease: 'Linear',
       onComplete: () => {
-        // Start the new scene first, then stop this one
-        this.scene.start('StartMenuScene');
-        this.scene.stop('IntroCutsceneScene');
-
-        // Fade out the overlay's black rectangle
-        overlayScene.fadeFromBlack();
+        // Use the overlay scene to handle the transition (since it persists)
+        overlayScene.completeWipeTransition('StartMenuScene');
       },
     });
   }

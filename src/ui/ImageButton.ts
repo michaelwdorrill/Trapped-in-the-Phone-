@@ -31,15 +31,12 @@ export class ImageButton {
     this.image.on('pointerdown', this.onPress, this);
   }
 
-  private async onPress(): Promise<void> {
+  private onPress(): void {
     if (InputLock.isLocked()) {
       return;
     }
 
-    // Lock input during press handling
-    InputLock.lock();
-
-    // Play button SFX
+    // Play button SFX (fire and forget)
     AudioManager.playButtonSfx();
 
     // Spawn rainbow burst behind the button
@@ -47,10 +44,8 @@ export class ImageButton {
       spawnRainbowBurst(this.scene, this.image);
     }
 
-    // Small delay to let burst start, then execute callback
-    this.scene.time.delayedCall(50, () => {
-      this.callback();
-    });
+    // Execute callback immediately - it will handle locking via transition
+    this.callback();
   }
 
   setVisible(visible: boolean): this {
