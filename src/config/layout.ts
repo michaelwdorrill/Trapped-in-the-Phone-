@@ -35,6 +35,7 @@ export const LAYOUT = {
   // Character Select
   characterSelect: {
     title: { x: 270, y: 96 },
+    nameInput: { x: 270, y: 185, width: 280, height: 50 },
     background: { x: 270, y: 479 },
     portrait: { x: 270, y: 479 },
     leftArrow: { x: 44, y: 479 },
