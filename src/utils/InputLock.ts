@@ -1,26 +1,16 @@
-import { AudioManager } from '../audio/AudioManager';
-
 class InputLockClass {
-  private _transitionLocked: boolean = false;
-
-  get transitionLocked(): boolean {
-    return this._transitionLocked;
-  }
-
-  set transitionLocked(value: boolean) {
-    this._transitionLocked = value;
-  }
+  private _locked: boolean = false;
 
   isLocked(): boolean {
-    return this._transitionLocked || AudioManager.isSfxLocked();
+    return this._locked;
   }
 
   lock(): void {
-    this._transitionLocked = true;
+    this._locked = true;
   }
 
   unlock(): void {
-    this._transitionLocked = false;
+    this._locked = false;
   }
 }
 
