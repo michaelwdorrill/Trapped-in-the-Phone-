@@ -8,9 +8,6 @@ export class OverlayScene extends Phaser.Scene {
   private fadeRect!: Phaser.GameObjects.Rectangle;
   private maximizeBtn!: Phaser.GameObjects.Image;
   private isTransitioning: boolean = false;
-  private sceneSwitchPending: boolean = false;
-  private pendingSceneKey: string = '';
-  private pendingData?: object;
 
   constructor() {
     super({ key: 'OverlayScene' });
@@ -60,39 +57,14 @@ export class OverlayScene extends Phaser.Scene {
     // Prevent multiple simultaneous transitions
     if (this.isTransitioning) return;
     this.isTransitioning = true;
-    this.sceneSwitchPending = true;
-    this.pendingSceneKey = nextSceneKey;
-    this.pendingData = data;
 
     // Lock input immediately
     InputLock.lock();
 
-    // Fade to black
-    this.tweens.add({
-      targets: this.fadeRect,
-      alpha: 1,
-      duration: FADE_MS,
-      ease: 'Linear',
-      onComplete: () => {
-        if (this.sceneSwitchPending) {
-          this.sceneSwitchPending = false;
-          this.performSceneSwitch(nextSceneKey, data);
-        }
-      },
-    });
+    // Set to black instantly
+    this.fadeRect.setAlpha(1);
 
-    // Fallback: always trigger scene switch if it hasn't happened yet
-    this.time.delayedCall(FADE_MS + 100, () => {
-      if (this.sceneSwitchPending) {
-        this.sceneSwitchPending = false;
-        this.fadeRect.setAlpha(1);
-        this.performSceneSwitch(this.pendingSceneKey, this.pendingData);
-      }
-    });
-  }
-
-  private performSceneSwitch(nextSceneKey: string, data?: object): void {
-    // Stop all content scenes (except Background and Overlay)
+    // Stop all content scenes
     const contentScenes = [
       'LaunchScene',
       'IntroCutsceneScene',
@@ -103,32 +75,34 @@ export class OverlayScene extends Phaser.Scene {
     ];
 
     for (const sceneKey of contentScenes) {
-      if (this.scene.isActive(sceneKey)) {
+      try {
         this.scene.stop(sceneKey);
+      } catch (e) {
+        // Ignore errors from stopping inactive scenes
       }
     }
 
     // Start next scene
     this.scene.start(nextSceneKey, data);
 
-    // Fade from black
-    this.tweens.add({
-      targets: this.fadeRect,
-      alpha: 0,
-      duration: FADE_MS,
-      ease: 'Linear',
-      onComplete: () => {
+    // Fade from black using time-based approach
+    let elapsed = 0;
+    const fadeStep = () => {
+      elapsed += 16; // ~60fps
+      const progress = Math.min(elapsed / FADE_MS, 1);
+      this.fadeRect.setAlpha(1 - progress);
+
+      if (progress < 1) {
+        this.time.delayedCall(16, fadeStep);
+      } else {
+        this.fadeRect.setAlpha(0);
         this.isTransitioning = false;
         InputLock.unlock();
-      },
-    });
+      }
+    };
 
-    // Fallback: ensure unlock and transition flag reset
-    this.time.delayedCall(FADE_MS + 100, () => {
-      this.fadeRect.setAlpha(0);
-      this.isTransitioning = false;
-      InputLock.unlock();
-    });
+    // Start fade out after a brief moment
+    this.time.delayedCall(50, fadeStep);
   }
 
   // Called when transitioning from cutscene (which does its own wipe to black)
