@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { LAYOUT } from '../config/layout';
 import { GameState } from '../state/GameState';
 import { AudioManager } from '../audio/AudioManager';
+import { InputLock } from '../utils/InputLock';
 import { ImageButton } from '../ui/ImageButton';
 import { Slider } from '../ui/Slider';
 import { BackgroundScene } from './BackgroundScene';
@@ -24,6 +25,11 @@ export class SettingsScene extends Phaser.Scene {
 
     const overlayScene = this.scene.get('OverlayScene') as OverlayScene;
     overlayScene.setMaximizeVisible(true);
+
+    // Safety net: ensure input unlocks after transition
+    this.time.delayedCall(200, () => {
+      InputLock.unlock();
+    });
 
     // Do NOT change BGM - keep whatever is playing
 

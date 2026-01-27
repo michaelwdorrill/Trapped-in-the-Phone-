@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { LAYOUT } from '../config/layout';
 import { getCharacterById } from '../config/characters';
 import { GameState } from '../state/GameState';
+import { InputLock } from '../utils/InputLock';
 import { ImageButton } from '../ui/ImageButton';
 import { BackgroundScene } from './BackgroundScene';
 import { OverlayScene } from './OverlayScene';
@@ -22,6 +23,11 @@ export class LevelSelectScene extends Phaser.Scene {
 
     const overlayScene = this.scene.get('OverlayScene') as OverlayScene;
     overlayScene.setMaximizeVisible(true);
+
+    // Safety net: ensure input unlocks after transition
+    this.time.delayedCall(200, () => {
+      InputLock.unlock();
+    });
 
     // BGM should already be playing (bgm_shuffle), don't restart
 
