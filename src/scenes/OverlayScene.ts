@@ -102,8 +102,12 @@ export class OverlayScene extends Phaser.Scene {
       this.scene.start(this.nextSceneKey, this.nextSceneData);
     }
 
+    // CRITICAL: scene.start() makes OverlayScene inactive, so we must reactivate it
+    this.ensureActive();
+
     // Start fading in
     this.fadeState = 'fading_in';
+    console.log('[OverlayScene] Fade in started, fadeProgress:', this.fadeProgress);
   }
 
   private toggleMaximize(): void {
