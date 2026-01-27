@@ -25,15 +25,14 @@ export class StartMenuScene extends Phaser.Scene {
     const overlayScene = this.scene.get('OverlayScene') as OverlayScene;
     overlayScene.setMaximizeVisible(true);
 
+    // Reset transition state and unlock input (safety net)
+    overlayScene.resetTransitionState();
+    InputLock.unlock();
+
     // Ensure BGM is playing (don't restart if already playing)
     if (AudioManager.getCurrentBgmKey() !== 'bgm_trapped') {
       AudioManager.playBgm('bgm_trapped', true, false);
     }
-
-    // Force unlock input after fade would complete (safety net)
-    this.time.delayedCall(FADE_MS + 200, () => {
-      InputLock.unlock();
-    });
 
     // Title card with pulse animation
     this.titleCard = this.add.image(

@@ -50,7 +50,14 @@ export class OverlayScene extends Phaser.Scene {
   }
 
   setMaximizeVisible(visible: boolean): void {
+    console.log('[OverlayScene] setMaximizeVisible:', visible);
     this.maximizeBtn.setVisible(visible);
+  }
+
+  // Called by content scenes to reset transition state after they're fully loaded
+  resetTransitionState(): void {
+    console.log('[OverlayScene] resetTransitionState called');
+    this.isTransitioning = false;
   }
 
   transitionTo(nextSceneKey: string, data?: object): void {

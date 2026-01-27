@@ -24,10 +24,9 @@ export class LevelSelectScene extends Phaser.Scene {
     const overlayScene = this.scene.get('OverlayScene') as OverlayScene;
     overlayScene.setMaximizeVisible(true);
 
-    // Safety net: ensure input unlocks after transition
-    this.time.delayedCall(200, () => {
-      InputLock.unlock();
-    });
+    // Reset transition state and unlock input (safety net)
+    overlayScene.resetTransitionState();
+    InputLock.unlock();
 
     // BGM should already be playing (bgm_shuffle), don't restart
 
