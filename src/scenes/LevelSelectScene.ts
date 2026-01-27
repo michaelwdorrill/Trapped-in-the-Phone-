@@ -3,20 +3,31 @@ import { LAYOUT } from '../config/layout';
 import { getCharacterById } from '../config/characters';
 import { GameState } from '../state/GameState';
 import { InputLock } from '../utils/InputLock';
+import { AudioManager } from '../audio/AudioManager';
 import { ImageButton } from '../ui/ImageButton';
 import { BackgroundScene } from './BackgroundScene';
 import { OverlayScene } from './OverlayScene';
+
+// Animation constants for portrait button
+const POP_SCALE = 1.08;
+const POP_DURATION = 80;
 
 export class LevelSelectScene extends Phaser.Scene {
   private settingsBtn!: ImageButton;
   private achievementsBtn!: ImageButton;
   private levelBtns: ImageButton[] = [];
+  private portraitFrame!: Phaser.GameObjects.Image;
+  private portrait!: Phaser.GameObjects.Image;
+  private isPortraitAnimating: boolean = false;
 
   constructor() {
     super({ key: 'LevelSelectScene' });
   }
 
   create(): void {
+    // Register shutdown handler for cleanup
+    this.events.on('shutdown', this.shutdown, this);
+
     // Show background and maximize button
     const bgScene = this.scene.get('BackgroundScene') as BackgroundScene;
     bgScene.setBackgroundVisible(true);
@@ -37,8 +48,8 @@ export class LevelSelectScene extends Phaser.Scene {
       'ls_title'
     ).setOrigin(0.5, 0.5);
 
-    // Portrait frame
-    this.add.image(
+    // Portrait frame (clickable to go back to character select)
+    this.portraitFrame = this.add.image(
       LAYOUT.levelSelect.portraitFrame.x,
       LAYOUT.levelSelect.portraitFrame.y,
       'ls_frame'
@@ -47,11 +58,15 @@ export class LevelSelectScene extends Phaser.Scene {
     // Character portrait (144x144, centered in 150x150 frame = 3px border)
     const selectedChar = getCharacterById(GameState.selectedCharacterId);
     if (selectedChar) {
-      this.add.image(
+      this.portrait = this.add.image(
         LAYOUT.levelSelect.portrait.x,
         LAYOUT.levelSelect.portrait.y,
         selectedChar.levelKey
       ).setOrigin(0.5, 0.5);
+
+      // Make portrait interactive (clickable to go back to character select)
+      this.portrait.setInteractive({ useHandCursor: true });
+      this.portrait.on('pointerdown', this.onPortraitClick, this);
     }
 
     // Level buttons
@@ -143,6 +158,46 @@ export class LevelSelectScene extends Phaser.Scene {
     });
   }
 
+  private onPortraitClick(): void {
+    // Block if input is locked or already animating
+    if (InputLock.isLocked() || this.isPortraitAnimating) {
+      return;
+    }
+
+    // Play button SFX
+    AudioManager.playButtonSfx();
+
+    // Mark as animating
+    this.isPortraitAnimating = true;
+
+    // Pop animation on both portrait and frame
+    const targets = [this.portrait, this.portraitFrame];
+
+    this.tweens.add({
+      targets,
+      scaleX: POP_SCALE,
+      scaleY: POP_SCALE,
+      duration: POP_DURATION,
+      ease: 'Quad.easeOut',
+      onComplete: () => {
+        // Scale back down
+        this.tweens.add({
+          targets,
+          scaleX: 1,
+          scaleY: 1,
+          duration: POP_DURATION,
+          ease: 'Quad.easeIn',
+          onComplete: () => {
+            this.isPortraitAnimating = false;
+            // Navigate back to character select
+            const overlayScene = this.scene.get('OverlayScene') as OverlayScene;
+            overlayScene.transitionTo('CharacterSelectScene');
+          },
+        });
+      },
+    });
+  }
+
   shutdown(): void {
     this.settingsBtn.destroy();
     this.achievementsBtn.destroy();
@@ -150,5 +205,10 @@ export class LevelSelectScene extends Phaser.Scene {
       btn.destroy();
     }
     this.levelBtns = [];
+
+    // Clean up portrait click handler
+    if (this.portrait) {
+      this.portrait.off('pointerdown', this.onPortraitClick, this);
+    }
   }
 }
