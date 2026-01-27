@@ -14,6 +14,7 @@ export class OverlayScene extends Phaser.Scene {
   private fadeProgress: number = 0;
   private nextSceneKey?: string;
   private nextSceneData?: object;
+  private lastTime: number = 0;
 
   constructor() {
     super({ key: 'OverlayScene' });
@@ -39,11 +40,19 @@ export class OverlayScene extends Phaser.Scene {
     // Reset fade state
     this.fadeState = 'idle';
     this.fadeProgress = 0;
+    this.lastTime = 0;
+
+    // Hook into the game's main loop directly (more reliable than scene update)
+    this.game.events.on('step', this.onGameStep, this);
   }
 
-  update(_time: number, delta: number): void {
-    // Manual fade animation (more reliable than tweens for parallel scenes)
+  // This runs every frame regardless of scene active state
+  private onGameStep(time: number, _delta: number): void {
     if (this.fadeState === 'idle') return;
+
+    // Calculate our own delta since the provided one might not be reliable
+    const delta = this.lastTime > 0 ? time - this.lastTime : 16.67;
+    this.lastTime = time;
 
     const fadeSpeed = 2 / FADE_MS; // Complete fade in FADE_MS/2
 
@@ -72,6 +81,11 @@ export class OverlayScene extends Phaser.Scene {
         this.fadeRect.setAlpha(this.fadeProgress);
       }
     }
+  }
+
+  // Keep update() as a no-op since we use game.events.on('step') instead
+  update(_time: number, _delta: number): void {
+    // Fade animation now handled by onGameStep
   }
 
   private performSceneSwitch(): void {
