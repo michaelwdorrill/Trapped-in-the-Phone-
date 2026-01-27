@@ -32,18 +32,21 @@ export class ImageButton {
   }
 
   private onPress(): void {
+    console.log('[ImageButton] onPress called, locked:', InputLock.isLocked());
     if (InputLock.isLocked()) {
+      console.log('[ImageButton] Input locked, ignoring');
       return;
     }
 
     // Play button SFX (fire and forget)
     AudioManager.playButtonSfx();
 
-    // Spawn rainbow burst behind the button
-    if (!this.skipBurst) {
-      spawnRainbowBurst(this.scene, this.image);
-    }
+    // Rainbow burst disabled for debugging
+    // if (!this.skipBurst) {
+    //   spawnRainbowBurst(this.scene, this.image);
+    // }
 
+    console.log('[ImageButton] Executing callback');
     // Execute callback immediately - it will handle locking via transition
     this.callback();
   }
