@@ -4,7 +4,7 @@ import { AudioManager } from '../audio/AudioManager';
 // import { spawnRainbowBurst } from '../fx/RainbowBurst';
 
 // Animation constants
-const POP_SCALE = 1.15; // Scale up by 15% for pop effect
+const POP_SCALE = 1.08; // Scale up by 8% for pop effect
 const POP_DURATION = 80; // Duration of scale up/down in ms (fast pop)
 
 export interface ImageButtonConfig {
