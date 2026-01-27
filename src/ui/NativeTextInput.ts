@@ -16,9 +16,14 @@ export interface NativeTextInputConfig {
   onSubmit?: (value: string) => void;
 }
 
+// Unique ID counter for input elements
+let inputIdCounter = 0;
+
 export class NativeTextInput {
   private scene: Phaser.Scene;
   private inputElement: HTMLInputElement;
+  private styleElement: HTMLStyleElement;
+  private inputId: string;
   private gameX: number;
   private gameY: number;
   private gameWidth: number;
@@ -43,9 +48,13 @@ export class NativeTextInput {
     this.onChange = config.onChange;
     this.onSubmit = config.onSubmit;
 
+    // Generate unique ID for this input
+    this.inputId = `native-text-input-${inputIdCounter++}`;
+
     // Create the HTML input element
     this.inputElement = document.createElement('input');
     this.inputElement.type = 'text';
+    this.inputElement.id = this.inputId;
     this.inputElement.placeholder = config.placeholder ?? 'Enter name...';
     this.inputElement.maxLength = config.maxLength ?? 12;
     this.inputElement.value = config.initialValue ?? '';
@@ -69,6 +78,23 @@ export class NativeTextInput {
       appearance: none;
       line-height: 1.2;
     `;
+
+    // Create style element for placeholder pseudo-element (can't be done inline)
+    this.styleElement = document.createElement('style');
+    this.styleElement.textContent = `
+      #${this.inputId}::placeholder {
+        color: #999999;
+        opacity: 1;
+      }
+      #${this.inputId}::-webkit-input-placeholder {
+        color: #999999;
+      }
+      #${this.inputId}::-moz-placeholder {
+        color: #999999;
+        opacity: 1;
+      }
+    `;
+    document.head.appendChild(this.styleElement);
 
     // Create bound handlers (so we can remove them later)
     this.boundHandleInput = this.handleInput.bind(this);
@@ -181,9 +207,14 @@ export class NativeTextInput {
     this.inputElement.removeEventListener('keydown', this.boundHandleKeyDown);
     this.inputElement.removeEventListener('blur', this.boundHandleBlur);
 
-    // Remove from DOM
+    // Remove input element from DOM
     if (this.inputElement.parentNode) {
       this.inputElement.parentNode.removeChild(this.inputElement);
+    }
+
+    // Remove style element from DOM
+    if (this.styleElement.parentNode) {
+      this.styleElement.parentNode.removeChild(this.styleElement);
     }
   }
 }

@@ -118,7 +118,7 @@ export class CharacterSelectScene extends Phaser.Scene {
       width: nameLayout.width,
       height: nameLayout.height,
       padding: 10, // 10px internal padding from text_entry.png edges
-      placeholder: '',
+      placeholder: 'Enter name...',
       maxLength: 12,
       initialValue: GameState.playerName,
       onChange: (value) => {
