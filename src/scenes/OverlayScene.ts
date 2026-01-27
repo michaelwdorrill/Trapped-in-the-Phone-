@@ -56,6 +56,11 @@ export class OverlayScene extends Phaser.Scene {
 
     const fadeSpeed = 2 / FADE_MS; // Complete fade in FADE_MS/2
 
+    // Debug: log every few frames to see progress
+    if (Math.random() < 0.1) {
+      console.log('[OverlayScene] step - delta:', delta.toFixed(2), 'progress:', this.fadeProgress.toFixed(3), 'alpha:', this.fadeRect.alpha.toFixed(3));
+    }
+
     if (this.fadeState === 'fading_out') {
       this.fadeProgress += fadeSpeed * delta;
       if (this.fadeProgress >= 1) {
@@ -67,6 +72,8 @@ export class OverlayScene extends Phaser.Scene {
         this.performSceneSwitch();
       } else {
         this.fadeRect.setAlpha(this.fadeProgress);
+        // Ensure overlay stays on top during fade
+        this.scene.bringToTop('OverlayScene');
       }
     } else if (this.fadeState === 'fading_in') {
       this.fadeProgress -= fadeSpeed * delta;
@@ -79,6 +86,8 @@ export class OverlayScene extends Phaser.Scene {
         InputLock.unlock();
       } else {
         this.fadeRect.setAlpha(this.fadeProgress);
+        // Ensure overlay stays on top during fade
+        this.scene.bringToTop('OverlayScene');
       }
     }
   }
