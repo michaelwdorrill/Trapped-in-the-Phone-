@@ -9,6 +9,12 @@ export class OverlayScene extends Phaser.Scene {
   private maximizeBtn!: Phaser.GameObjects.Image;
   private isTransitioning: boolean = false;
 
+  // Manual fade state (more reliable than tweens for parallel scenes)
+  private fadeState: 'idle' | 'fading_out' | 'fading_in' = 'idle';
+  private fadeProgress: number = 0;
+  private nextSceneKey?: string;
+  private nextSceneData?: object;
+
   constructor() {
     super({ key: 'OverlayScene' });
   }
@@ -29,6 +35,75 @@ export class OverlayScene extends Phaser.Scene {
     this.maximizeBtn.setVisible(false); // Hidden by default
 
     this.maximizeBtn.on('pointerdown', this.toggleMaximize, this);
+
+    // Reset fade state
+    this.fadeState = 'idle';
+    this.fadeProgress = 0;
+  }
+
+  update(_time: number, delta: number): void {
+    // Manual fade animation (more reliable than tweens for parallel scenes)
+    if (this.fadeState === 'idle') return;
+
+    const fadeSpeed = 2 / FADE_MS; // Complete fade in FADE_MS/2
+
+    if (this.fadeState === 'fading_out') {
+      this.fadeProgress += fadeSpeed * delta;
+      if (this.fadeProgress >= 1) {
+        this.fadeProgress = 1;
+        this.fadeRect.setAlpha(1);
+        console.log('[OverlayScene] Manual fade out complete');
+
+        // Switch scenes
+        this.performSceneSwitch();
+      } else {
+        this.fadeRect.setAlpha(this.fadeProgress);
+      }
+    } else if (this.fadeState === 'fading_in') {
+      this.fadeProgress -= fadeSpeed * delta;
+      if (this.fadeProgress <= 0) {
+        this.fadeProgress = 0;
+        this.fadeRect.setAlpha(0);
+        this.fadeState = 'idle';
+        console.log('[OverlayScene] Manual fade in complete, unlocking');
+        this.isTransitioning = false;
+        InputLock.unlock();
+      } else {
+        this.fadeRect.setAlpha(this.fadeProgress);
+      }
+    }
+  }
+
+  private performSceneSwitch(): void {
+    // Content scenes list
+    const contentScenes = [
+      'LaunchScene',
+      'IntroCutsceneScene',
+      'StartMenuScene',
+      'SettingsScene',
+      'CharacterSelectScene',
+      'LevelSelectScene',
+    ];
+
+    // Stop all content scenes except the next one
+    for (const sceneKey of contentScenes) {
+      if (sceneKey !== this.nextSceneKey) {
+        try {
+          this.scene.stop(sceneKey);
+        } catch (e) {
+          // Scene might not be running
+        }
+      }
+    }
+
+    // Start next scene
+    console.log('[OverlayScene] Starting scene:', this.nextSceneKey);
+    if (this.nextSceneKey) {
+      this.scene.start(this.nextSceneKey, this.nextSceneData);
+    }
+
+    // Start fading in
+    this.fadeState = 'fading_in';
   }
 
   private toggleMaximize(): void {
@@ -63,6 +138,7 @@ export class OverlayScene extends Phaser.Scene {
   transitionTo(nextSceneKey: string, data?: object): void {
     console.log('[OverlayScene] transitionTo called:', nextSceneKey);
     console.log('[OverlayScene] isTransitioning:', this.isTransitioning);
+    console.log('[OverlayScene] Scene active:', this.scene.isActive('OverlayScene'));
 
     // Prevent multiple simultaneous transitions
     if (this.isTransitioning) {
@@ -75,86 +151,52 @@ export class OverlayScene extends Phaser.Scene {
     InputLock.lock();
     console.log('[OverlayScene] Input locked');
 
-    // Content scenes list
-    const contentScenes = [
-      'LaunchScene',
-      'IntroCutsceneScene',
-      'StartMenuScene',
-      'SettingsScene',
-      'CharacterSelectScene',
-      'LevelSelectScene',
-    ];
+    // Ensure this scene is awake and active for update() to run
+    if (!this.scene.isActive('OverlayScene')) {
+      console.log('[OverlayScene] Scene not active, running it');
+      this.scene.run('OverlayScene');
+    }
+    // Always bring overlay to top so fade rect is visible above content scenes
+    this.scene.bringToTop('OverlayScene');
 
-    // Phase 1: Fade to black
-    this.tweens.add({
-      targets: this.fadeRect,
-      alpha: 1,
-      duration: FADE_MS / 2,
-      ease: 'Linear',
-      onComplete: () => {
-        console.log('[OverlayScene] Fade out complete, switching scenes');
+    // Store transition info for manual fade
+    this.nextSceneKey = nextSceneKey;
+    this.nextSceneData = data;
 
-        // Stop all content scenes except the next one
-        for (const sceneKey of contentScenes) {
-          if (sceneKey !== nextSceneKey) {
-            try {
-              this.scene.stop(sceneKey);
-            } catch (e) {
-              // Scene might not be running
-            }
-          }
-        }
-
-        // Start next scene
-        console.log('[OverlayScene] Starting scene:', nextSceneKey);
-        this.scene.start(nextSceneKey, data);
-
-        // Phase 2: Fade from black (after short delay to let scene initialize)
-        this.time.delayedCall(50, () => {
-          this.tweens.add({
-            targets: this.fadeRect,
-            alpha: 0,
-            duration: FADE_MS / 2,
-            ease: 'Linear',
-            onComplete: () => {
-              console.log('[OverlayScene] Fade in complete, unlocking');
-              this.isTransitioning = false;
-              InputLock.unlock();
-            },
-          });
-        });
-      },
-    });
+    // Start manual fade out (handled in update())
+    this.fadeState = 'fading_out';
+    this.fadeProgress = this.fadeRect.alpha; // Start from current alpha
+    console.log('[OverlayScene] Starting manual fade out');
   }
 
   // Called when transitioning from cutscene (which does its own wipe to black)
   fadeFromBlack(): void {
-    // Set to full black first
+    // Ensure overlay is active and on top
+    if (!this.scene.isActive('OverlayScene')) {
+      this.scene.run('OverlayScene');
+    }
+    this.scene.bringToTop('OverlayScene');
+
+    // Set to full black and start manual fade in
     this.fadeRect.setAlpha(1);
-
-    // Fade out
-    this.tweens.add({
-      targets: this.fadeRect,
-      alpha: 0,
-      duration: FADE_MS,
-      ease: 'Linear',
-      onComplete: () => {
-        InputLock.unlock();
-      },
-    });
-
-    // Fallback: ensure unlock happens even if tween fails
-    this.time.delayedCall(FADE_MS + 100, () => {
-      InputLock.unlock();
-    });
+    this.fadeProgress = 1;
+    this.fadeState = 'fading_in';
+    this.isTransitioning = true;
+    console.log('[OverlayScene] fadeFromBlack - starting manual fade in');
   }
 
   // Called by cutscene after its wipe-to-black completes
   completeWipeTransition(nextSceneKey: string): void {
     console.log('[OverlayScene] completeWipeTransition called:', nextSceneKey);
 
-    // Reset transition flag (in case transitionTo set it)
-    this.isTransitioning = false;
+    // Reset transition flag
+    this.isTransitioning = true; // Will be reset when fade completes
+
+    // Ensure overlay is active and on top
+    if (!this.scene.isActive('OverlayScene')) {
+      this.scene.run('OverlayScene');
+    }
+    this.scene.bringToTop('OverlayScene');
 
     // Stop the cutscene scene
     this.scene.stop('IntroCutsceneScene');
@@ -163,25 +205,10 @@ export class OverlayScene extends Phaser.Scene {
     this.scene.start(nextSceneKey);
     console.log('[OverlayScene] Started scene:', nextSceneKey);
 
-    // Set overlay to black and fade out
+    // Set overlay to black and start manual fade in
     this.fadeRect.setAlpha(1);
-
-    // Unlock input after fade completes
-    this.tweens.add({
-      targets: this.fadeRect,
-      alpha: 0,
-      duration: FADE_MS,
-      ease: 'Linear',
-      onComplete: () => {
-        console.log('[OverlayScene] Fade complete, unlocking');
-        InputLock.unlock();
-      },
-    });
-
-    // Fallback: ensure unlock happens even if tween fails
-    this.time.delayedCall(FADE_MS + 100, () => {
-      console.log('[OverlayScene] Fallback unlock');
-      InputLock.unlock();
-    });
+    this.fadeProgress = 1;
+    this.fadeState = 'fading_in';
+    console.log('[OverlayScene] Starting manual fade in from black');
   }
 }
