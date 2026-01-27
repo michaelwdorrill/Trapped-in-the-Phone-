@@ -135,29 +135,58 @@ export class OverlayScene extends Phaser.Scene {
     this.isTransitioning = false;
   }
 
+  // Ensure this scene is truly active and updating
+  private ensureActive(): void {
+    const sceneKey = 'OverlayScene';
+    console.log('[OverlayScene] ensureActive - checking state');
+    console.log('[OverlayScene] isActive:', this.scene.isActive(sceneKey));
+    console.log('[OverlayScene] isPaused:', this.scene.isPaused(sceneKey));
+    console.log('[OverlayScene] isSleeping:', this.scene.isSleeping(sceneKey));
+
+    // Try multiple methods to ensure the scene is active
+    if (this.scene.isSleeping(sceneKey)) {
+      console.log('[OverlayScene] Waking scene');
+      this.scene.wake(sceneKey);
+    }
+    if (this.scene.isPaused(sceneKey)) {
+      console.log('[OverlayScene] Resuming scene');
+      this.scene.resume(sceneKey);
+    }
+    if (!this.scene.isActive(sceneKey)) {
+      console.log('[OverlayScene] Running scene');
+      this.scene.run(sceneKey);
+    }
+
+    // Force the scene systems to be active
+    this.sys.setActive(true);
+    this.sys.setVisible(true);
+
+    // Bring to top
+    this.scene.bringToTop(sceneKey);
+
+    console.log('[OverlayScene] After ensureActive - isActive:', this.scene.isActive(sceneKey));
+  }
+
   transitionTo(nextSceneKey: string, data?: object): void {
     console.log('[OverlayScene] transitionTo called:', nextSceneKey);
     console.log('[OverlayScene] isTransitioning:', this.isTransitioning);
-    console.log('[OverlayScene] Scene active:', this.scene.isActive('OverlayScene'));
+    console.log('[OverlayScene] fadeState:', this.fadeState);
 
-    // Prevent multiple simultaneous transitions
-    if (this.isTransitioning) {
+    // Prevent multiple simultaneous transitions (but allow if we're stuck in fading_in)
+    if (this.isTransitioning && this.fadeState !== 'fading_in') {
       console.log('[OverlayScene] Already transitioning, returning');
       return;
     }
+
+    // Reset any stuck state
     this.isTransitioning = true;
 
     // Lock input immediately
     InputLock.lock();
     console.log('[OverlayScene] Input locked');
 
-    // Ensure this scene is awake and active for update() to run
-    if (!this.scene.isActive('OverlayScene')) {
-      console.log('[OverlayScene] Scene not active, running it');
-      this.scene.run('OverlayScene');
-    }
-    // Always bring overlay to top so fade rect is visible above content scenes
-    this.scene.bringToTop('OverlayScene');
+    // Ensure this scene is truly active for update() to run
+    this.ensureActive();
 
     // Store transition info for manual fade
     this.nextSceneKey = nextSceneKey;
@@ -166,16 +195,15 @@ export class OverlayScene extends Phaser.Scene {
     // Start manual fade out (handled in update())
     this.fadeState = 'fading_out';
     this.fadeProgress = this.fadeRect.alpha; // Start from current alpha
-    console.log('[OverlayScene] Starting manual fade out');
+    console.log('[OverlayScene] Starting manual fade out, fadeProgress:', this.fadeProgress);
   }
 
   // Called when transitioning from cutscene (which does its own wipe to black)
   fadeFromBlack(): void {
-    // Ensure overlay is active and on top
-    if (!this.scene.isActive('OverlayScene')) {
-      this.scene.run('OverlayScene');
-    }
-    this.scene.bringToTop('OverlayScene');
+    console.log('[OverlayScene] fadeFromBlack called');
+
+    // Ensure overlay is truly active
+    this.ensureActive();
 
     // Set to full black and start manual fade in
     this.fadeRect.setAlpha(1);
@@ -192,11 +220,8 @@ export class OverlayScene extends Phaser.Scene {
     // Reset transition flag
     this.isTransitioning = true; // Will be reset when fade completes
 
-    // Ensure overlay is active and on top
-    if (!this.scene.isActive('OverlayScene')) {
-      this.scene.run('OverlayScene');
-    }
-    this.scene.bringToTop('OverlayScene');
+    // Ensure overlay is truly active BEFORE stopping/starting other scenes
+    this.ensureActive();
 
     // Stop the cutscene scene
     this.scene.stop('IntroCutsceneScene');
@@ -204,6 +229,9 @@ export class OverlayScene extends Phaser.Scene {
     // Start the new scene
     this.scene.start(nextSceneKey);
     console.log('[OverlayScene] Started scene:', nextSceneKey);
+
+    // Ensure overlay is STILL active after scene changes (scene.start can affect other scenes)
+    this.ensureActive();
 
     // Set overlay to black and start manual fade in
     this.fadeRect.setAlpha(1);
