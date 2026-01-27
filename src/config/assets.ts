@@ -33,6 +33,7 @@ export const ASSETS: AssetEntry[] = [
   // Character select
   { key: 'cs_title', url: 'Assets/Character_Select/Select_Character_Title_Card.png', type: 'image' },
   { key: 'cs_bg', url: 'Assets/Character_Select/Character_Background.png', type: 'image' },
+  { key: 'cs_frame', url: 'Assets/Character_Select/Character_Frame.png', type: 'image' },
   { key: 'cs_left', url: 'Assets/Character_Select/Left_arrow.png', type: 'image' },
   { key: 'cs_right', url: 'Assets/Character_Select/Right_arrow.png', type: 'image' },
   { key: 'cs_select', url: 'Assets/Character_Select/Select_Character.png', type: 'image' },
