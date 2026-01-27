@@ -150,6 +150,7 @@ export class NativeTextInput {
   updatePosition(): void {
     const canvas = this.scene.game.canvas;
     const canvasRect = canvas.getBoundingClientRect();
+    const container = document.getElementById('game-container');
 
     // Calculate scale factor
     const scaleX = canvasRect.width / GAME_W;
@@ -159,16 +160,24 @@ export class NativeTextInput {
     const innerWidth = this.gameWidth - (this.padding * 2);
     const innerHeight = this.gameHeight - (this.padding * 2);
 
-    // Calculate position relative to game-container (not viewport)
+    // Calculate position relative to game canvas (not container)
     // gameX and gameY are center coordinates, so adjust for that
-    // The input is appended to game-container, so position relative to 0,0 of container
-    const screenX = (this.gameX - innerWidth / 2) * scaleX;
-    const screenY = (this.gameY - innerHeight / 2) * scaleY;
+    const canvasX = (this.gameX - innerWidth / 2) * scaleX;
+    const canvasY = (this.gameY - innerHeight / 2) * scaleY;
     const screenWidth = innerWidth * scaleX;
     const screenHeight = innerHeight * scaleY;
 
-    this.inputElement.style.left = `${screenX}px`;
-    this.inputElement.style.top = `${screenY}px`;
+    // Get canvas offset within the container (due to CENTER_BOTH scaling)
+    let offsetX = 0;
+    let offsetY = 0;
+    if (container) {
+      const containerRect = container.getBoundingClientRect();
+      offsetX = canvasRect.left - containerRect.left;
+      offsetY = canvasRect.top - containerRect.top;
+    }
+
+    this.inputElement.style.left = `${canvasX + offsetX}px`;
+    this.inputElement.style.top = `${canvasY + offsetY}px`;
     this.inputElement.style.width = `${screenWidth}px`;
     this.inputElement.style.height = `${screenHeight}px`;
 
