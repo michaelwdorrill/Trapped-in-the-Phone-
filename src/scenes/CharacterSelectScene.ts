@@ -118,7 +118,8 @@ export class CharacterSelectScene extends Phaser.Scene {
       y: nameLayout.y,
       width: nameLayout.width,
       height: nameLayout.height,
-      placeholder: 'Enter name...',
+      padding: 10, // 10px internal padding from text_entry.png edges
+      placeholder: '',
       maxLength: 12,
       initialValue: GameState.playerName,
       onChange: (value) => {
@@ -133,7 +134,8 @@ export class CharacterSelectScene extends Phaser.Scene {
       y: LAYOUT.characterSelect.leftArrow.y,
       texture: 'cs_left',
       callback: () => this.changeCharacter(-1),
-      skipBurst: true,
+      skipBurst: true, // Rainbow burst is spawned in changeCharacter
+      skipPop: true,   // No pop animation for arrows
     });
     this.leftArrowBtn.image.setDepth(DEPTH_UI);
 
@@ -144,7 +146,8 @@ export class CharacterSelectScene extends Phaser.Scene {
       y: LAYOUT.characterSelect.rightArrow.y,
       texture: 'cs_right',
       callback: () => this.changeCharacter(1),
-      skipBurst: true,
+      skipBurst: true, // Rainbow burst is spawned in changeCharacter
+      skipPop: true,   // No pop animation for arrows
     });
     this.rightArrowBtn.image.setDepth(DEPTH_UI);
 

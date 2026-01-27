@@ -3,6 +3,10 @@ import { InputLock } from '../utils/InputLock';
 import { AudioManager } from '../audio/AudioManager';
 import { spawnRainbowBurst } from '../fx/RainbowBurst';
 
+// Animation constants
+const POP_SCALE = 1.15; // Scale up by 15% for pop effect
+const POP_DURATION = 100; // Duration of scale up/down in ms
+
 export interface ImageButtonConfig {
   scene: Phaser.Scene;
   x: number;
@@ -11,6 +15,7 @@ export interface ImageButtonConfig {
   frame?: string;
   callback: () => void;
   skipBurst?: boolean;
+  skipPop?: boolean; // Skip the pop animation (for arrows, etc.)
 }
 
 export class ImageButton {
@@ -18,11 +23,13 @@ export class ImageButton {
   private scene: Phaser.Scene;
   private callback: () => void;
   private skipBurst: boolean;
+  private skipPop: boolean;
 
   constructor(config: ImageButtonConfig) {
     this.scene = config.scene;
     this.callback = config.callback;
     this.skipBurst = config.skipBurst ?? false;
+    this.skipPop = config.skipPop ?? false;
 
     this.image = this.scene.add.image(config.x, config.y, config.texture, config.frame);
     this.image.setOrigin(0.5, 0.5);
@@ -32,23 +39,48 @@ export class ImageButton {
   }
 
   private onPress(): void {
-    console.log('[ImageButton] onPress called, locked:', InputLock.isLocked());
     if (InputLock.isLocked()) {
-      console.log('[ImageButton] Input locked, ignoring');
       return;
     }
 
-    // Play button SFX (fire and forget)
+    // Play button SFX
     AudioManager.playButtonSfx();
 
-    // Rainbow burst disabled for debugging
-    // if (!this.skipBurst) {
-    //   spawnRainbowBurst(this.scene, this.image);
-    // }
+    // Rainbow burst effect
+    if (!this.skipBurst) {
+      spawnRainbowBurst(this.scene, this.image);
+    }
 
-    console.log('[ImageButton] Executing callback');
-    // Execute callback immediately - it will handle locking via transition
-    this.callback();
+    // Pop animation: scale up then back down, then execute callback
+    if (this.skipPop) {
+      // No pop animation, execute callback immediately (callback handles its own input locking)
+      this.callback();
+    } else {
+      // Lock input for buttons with pop animation (transition buttons)
+      InputLock.lock();
+      // Scale up
+      this.scene.tweens.add({
+        targets: this.image,
+        scaleX: POP_SCALE,
+        scaleY: POP_SCALE,
+        duration: POP_DURATION,
+        ease: 'Quad.easeOut',
+        onComplete: () => {
+          // Scale back down
+          this.scene.tweens.add({
+            targets: this.image,
+            scaleX: 1,
+            scaleY: 1,
+            duration: POP_DURATION,
+            ease: 'Quad.easeIn',
+            onComplete: () => {
+              // Execute callback after animation completes
+              this.callback();
+            },
+          });
+        },
+      });
+    }
   }
 
   setVisible(visible: boolean): this {
