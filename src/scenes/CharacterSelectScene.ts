@@ -12,7 +12,6 @@ import { BackgroundScene } from './BackgroundScene';
 import { OverlayScene } from './OverlayScene';
 
 // Depth constants for proper layering
-const DEPTH_PORTRAIT_BG = 10;    // Yellow background fill behind character
 const DEPTH_CHARACTER = 20;      // Character portrait
 const DEPTH_FRAME = 30;          // Frame border on top (masks character when sliding)
 const DEPTH_UI = 40;             // Arrows, buttons, etc.
@@ -135,7 +134,6 @@ export class CharacterSelectScene extends Phaser.Scene {
       texture: 'cs_left',
       callback: () => this.changeCharacter(-1),
       skipBurst: true, // Rainbow burst is spawned in changeCharacter
-      skipPop: true,   // No pop animation for arrows
     });
     this.leftArrowBtn.image.setDepth(DEPTH_UI);
 
@@ -147,7 +145,6 @@ export class CharacterSelectScene extends Phaser.Scene {
       texture: 'cs_right',
       callback: () => this.changeCharacter(1),
       skipBurst: true, // Rainbow burst is spawned in changeCharacter
-      skipPop: true,   // No pop animation for arrows
     });
     this.rightArrowBtn.image.setDepth(DEPTH_UI);
 
