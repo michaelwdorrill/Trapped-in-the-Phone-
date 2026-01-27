@@ -54,55 +54,35 @@ export class OverlayScene extends Phaser.Scene {
   }
 
   transitionTo(nextSceneKey: string, data?: object): void {
+    console.log('[OverlayScene] transitionTo called:', nextSceneKey);
+    console.log('[OverlayScene] isTransitioning:', this.isTransitioning);
+
     // Prevent multiple simultaneous transitions
-    if (this.isTransitioning) return;
+    if (this.isTransitioning) {
+      console.log('[OverlayScene] Already transitioning, returning');
+      return;
+    }
     this.isTransitioning = true;
 
     // Lock input immediately
     InputLock.lock();
+    console.log('[OverlayScene] Input locked');
 
-    // Set to black instantly
-    this.fadeRect.setAlpha(1);
+    // Stop current scene - just StartMenuScene for now
+    console.log('[OverlayScene] Stopping StartMenuScene');
+    this.scene.stop('StartMenuScene');
 
-    // Stop all content scenes
-    const contentScenes = [
-      'LaunchScene',
-      'IntroCutsceneScene',
-      'StartMenuScene',
-      'SettingsScene',
-      'CharacterSelectScene',
-      'LevelSelectScene',
-    ];
-
-    for (const sceneKey of contentScenes) {
-      try {
-        this.scene.stop(sceneKey);
-      } catch (e) {
-        // Ignore errors from stopping inactive scenes
-      }
-    }
-
-    // Start next scene
+    // Start next scene directly - no fade for debugging
+    console.log('[OverlayScene] Starting scene:', nextSceneKey);
     this.scene.start(nextSceneKey, data);
+    console.log('[OverlayScene] scene.start called');
 
-    // Fade from black using time-based approach
-    let elapsed = 0;
-    const fadeStep = () => {
-      elapsed += 16; // ~60fps
-      const progress = Math.min(elapsed / FADE_MS, 1);
-      this.fadeRect.setAlpha(1 - progress);
-
-      if (progress < 1) {
-        this.time.delayedCall(16, fadeStep);
-      } else {
-        this.fadeRect.setAlpha(0);
-        this.isTransitioning = false;
-        InputLock.unlock();
-      }
-    };
-
-    // Start fade out after a brief moment
-    this.time.delayedCall(50, fadeStep);
+    // Unlock after brief delay
+    this.time.delayedCall(100, () => {
+      console.log('[OverlayScene] Unlocking input');
+      this.isTransitioning = false;
+      InputLock.unlock();
+    });
   }
 
   // Called when transitioning from cutscene (which does its own wipe to black)

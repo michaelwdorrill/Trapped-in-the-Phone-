@@ -17,6 +17,7 @@ export class SettingsScene extends Phaser.Scene {
   }
 
   create(): void {
+    console.log('[SettingsScene] create() called');
     // Show background and maximize button
     const bgScene = this.scene.get('BackgroundScene') as BackgroundScene;
     bgScene.setBackgroundVisible(true);

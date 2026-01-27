@@ -25,6 +25,7 @@ export class CharacterSelectScene extends Phaser.Scene {
   }
 
   create(): void {
+    console.log('[CharacterSelectScene] create() called');
     this.isAnimating = false;
 
     // Show background and maximize button

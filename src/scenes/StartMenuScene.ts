@@ -74,20 +74,24 @@ export class StartMenuScene extends Phaser.Scene {
   }
 
   private onStartGame(): void {
+    console.log('[StartMenuScene] onStartGame called');
     // Switch BGM to shuffle
     AudioManager.switchBgm('bgm_shuffle', 500, 500);
 
     // Transition to character select
     const overlayScene = this.scene.get('OverlayScene') as OverlayScene;
+    console.log('[StartMenuScene] Got overlay scene:', overlayScene);
     overlayScene.transitionTo('CharacterSelectScene');
   }
 
   private onSettings(): void {
+    console.log('[StartMenuScene] onSettings called');
     // Set return scene
     GameState.returnSceneKey = 'StartMenuScene';
 
     // Transition to settings
     const overlayScene = this.scene.get('OverlayScene') as OverlayScene;
+    console.log('[StartMenuScene] Got overlay scene:', overlayScene);
     overlayScene.transitionTo('SettingsScene');
   }
 
