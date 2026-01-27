@@ -3,6 +3,10 @@ import { InputLock } from '../utils/InputLock';
 import { AudioManager } from '../audio/AudioManager';
 // import { spawnRainbowBurst } from '../fx/RainbowBurst';
 
+// Animation constants
+const POP_SCALE = 1.15; // Scale up by 15% for pop effect
+const POP_DURATION = 80; // Duration of scale up/down in ms (fast pop)
+
 export interface ImageButtonConfig {
   scene: Phaser.Scene;
   x: number;
@@ -17,6 +21,7 @@ export class ImageButton {
   public image: Phaser.GameObjects.Image;
   private scene: Phaser.Scene;
   private callback: () => void;
+  private isAnimating: boolean = false;
 
   constructor(config: ImageButtonConfig) {
     this.scene = config.scene;
@@ -30,23 +35,47 @@ export class ImageButton {
   }
 
   private onPress(): void {
-    console.log('[ImageButton] onPress called, locked:', InputLock.isLocked());
-    if (InputLock.isLocked()) {
-      console.log('[ImageButton] Input locked, ignoring');
+    console.log('[ImageButton] onPress called, locked:', InputLock.isLocked(), 'animating:', this.isAnimating);
+
+    // Block if input is locked OR if we're already animating this button
+    if (InputLock.isLocked() || this.isAnimating) {
+      console.log('[ImageButton] Input locked or animating, ignoring');
       return;
     }
 
-    // Play button SFX (fire and forget)
+    // Play button SFX
     AudioManager.playButtonSfx();
 
-    // Rainbow burst disabled for debugging
-    // if (!this.skipBurst) {
-    //   spawnRainbowBurst(this.scene, this.image);
-    // }
+    // Mark as animating to prevent double-clicks during pop
+    this.isAnimating = true;
+    console.log('[ImageButton] Starting pop animation');
 
-    console.log('[ImageButton] Executing callback');
-    // Execute callback immediately - it will handle locking via transition
-    this.callback();
+    // Pop animation: scale up then back down, then execute callback
+    // NO input locking here - callback handles its own locking if needed
+    this.scene.tweens.add({
+      targets: this.image,
+      scaleX: POP_SCALE,
+      scaleY: POP_SCALE,
+      duration: POP_DURATION,
+      ease: 'Quad.easeOut',
+      onComplete: () => {
+        console.log('[ImageButton] Pop up complete, scaling back down');
+        // Scale back down
+        this.scene.tweens.add({
+          targets: this.image,
+          scaleX: 1,
+          scaleY: 1,
+          duration: POP_DURATION,
+          ease: 'Quad.easeIn',
+          onComplete: () => {
+            console.log('[ImageButton] Pop animation complete, executing callback');
+            this.isAnimating = false;
+            // Execute callback after animation completes
+            this.callback();
+          },
+        });
+      },
+    });
   }
 
   setVisible(visible: boolean): this {
