@@ -68,9 +68,25 @@ export class OverlayScene extends Phaser.Scene {
     InputLock.lock();
     console.log('[OverlayScene] Input locked');
 
-    // Stop current scene - just StartMenuScene for now
-    console.log('[OverlayScene] Stopping StartMenuScene');
-    this.scene.stop('StartMenuScene');
+    // Stop all content scenes (not persistent ones)
+    const contentScenes = [
+      'LaunchScene',
+      'IntroCutsceneScene',
+      'StartMenuScene',
+      'SettingsScene',
+      'CharacterSelectScene',
+      'LevelSelectScene',
+    ];
+    for (const sceneKey of contentScenes) {
+      if (sceneKey !== nextSceneKey) {
+        try {
+          this.scene.stop(sceneKey);
+        } catch (e) {
+          // Scene might not be running
+        }
+      }
+    }
+    console.log('[OverlayScene] Stopped content scenes');
 
     // Start next scene directly - no fade for debugging
     console.log('[OverlayScene] Starting scene:', nextSceneKey);
@@ -79,7 +95,7 @@ export class OverlayScene extends Phaser.Scene {
 
     // Unlock after brief delay
     this.time.delayedCall(100, () => {
-      console.log('[OverlayScene] Unlocking input');
+      console.log('[OverlayScene] Unlocking input, resetting isTransitioning');
       this.isTransitioning = false;
       InputLock.unlock();
     });
@@ -109,11 +125,17 @@ export class OverlayScene extends Phaser.Scene {
 
   // Called by cutscene after its wipe-to-black completes
   completeWipeTransition(nextSceneKey: string): void {
+    console.log('[OverlayScene] completeWipeTransition called:', nextSceneKey);
+
+    // Reset transition flag (in case transitionTo set it)
+    this.isTransitioning = false;
+
     // Stop the cutscene scene
     this.scene.stop('IntroCutsceneScene');
 
     // Start the new scene
     this.scene.start(nextSceneKey);
+    console.log('[OverlayScene] Started scene:', nextSceneKey);
 
     // Set overlay to black and fade out
     this.fadeRect.setAlpha(1);
@@ -125,12 +147,14 @@ export class OverlayScene extends Phaser.Scene {
       duration: FADE_MS,
       ease: 'Linear',
       onComplete: () => {
+        console.log('[OverlayScene] Fade complete, unlocking');
         InputLock.unlock();
       },
     });
 
     // Fallback: ensure unlock happens even if tween fails
     this.time.delayedCall(FADE_MS + 100, () => {
+      console.log('[OverlayScene] Fallback unlock');
       InputLock.unlock();
     });
   }
