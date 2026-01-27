@@ -70,25 +70,6 @@ export class CharacterSelectScene extends Phaser.Scene {
       'cs_title'
     ).setOrigin(0.5, 0.5).setDepth(DEPTH_UI);
 
-    // Name input field (temporarily hidden - will position based on new mockup)
-    const nameLayout = LAYOUT.characterSelect.nameInput;
-    this.nameInput = new NativeTextInput({
-      scene: this,
-      x: nameLayout.x,
-      y: nameLayout.y,
-      width: nameLayout.width,
-      height: nameLayout.height,
-      placeholder: 'Enter your name...',
-      maxLength: 12,
-      initialValue: GameState.playerName,
-      onChange: (value) => {
-        GameState.playerName = value;
-      },
-    });
-
-    // Portrait background fill (behind character) - now using cs_bg as the frame
-    // The inner area will be transparent, showing the scene background through it
-
     // Create geometry mask for the inner frame area (clips characters during slide)
     const frameX = LAYOUT.characterSelect.background.x;
     const frameY = LAYOUT.characterSelect.background.y;
@@ -119,6 +100,31 @@ export class CharacterSelectScene extends Phaser.Scene {
         'cs_frame'
       ).setOrigin(0.5, 0.5).setDepth(DEPTH_FRAME);
     }
+
+    // Text entry background (purple rectangle)
+    if (this.textures.exists('cs_text_entry')) {
+      this.add.image(
+        LAYOUT.characterSelect.nameInputBg.x,
+        LAYOUT.characterSelect.nameInputBg.y,
+        'cs_text_entry'
+      ).setOrigin(0.5, 0.5).setDepth(DEPTH_UI);
+    }
+
+    // Name input field (HTML input overlaid on purple background)
+    const nameLayout = LAYOUT.characterSelect.nameInput;
+    this.nameInput = new NativeTextInput({
+      scene: this,
+      x: nameLayout.x,
+      y: nameLayout.y,
+      width: nameLayout.width,
+      height: nameLayout.height,
+      placeholder: 'Enter name...',
+      maxLength: 12,
+      initialValue: GameState.playerName,
+      onChange: (value) => {
+        GameState.playerName = value;
+      },
+    });
 
     // Left arrow button (with custom handling for slide animation)
     this.leftArrowBtn = new ImageButton({

@@ -34,13 +34,14 @@ export const LAYOUT = {
 
   // Character Select
   characterSelect: {
-    title: { x: 270, y: 96 },
-    nameInput: { x: 270, y: 185, width: 280, height: 50 },
-    background: { x: 270, y: 479 },
-    portrait: { x: 270, y: 479 },
-    leftArrow: { x: 44, y: 479 },
-    rightArrow: { x: 496, y: 479 },
-    selectButton: { x: 270, y: 854 },
+    title: { x: 270, y: 70 },
+    background: { x: 270, y: 420 },
+    portrait: { x: 270, y: 420 },
+    leftArrow: { x: 44, y: 420 },
+    rightArrow: { x: 496, y: 420 },
+    nameInputBg: { x: 270, y: 780 },
+    nameInput: { x: 270, y: 780, width: 280, height: 40 },
+    selectButton: { x: 270, y: 860 },
   },
 
   // Level Select
