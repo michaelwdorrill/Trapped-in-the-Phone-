@@ -166,25 +166,29 @@ export class CharacterSelectScene extends Phaser.Scene {
     const newIndex = (this.currentIndex + direction + CHARACTERS.length) % CHARACTERS.length;
     const newChar = CHARACTERS[newIndex];
 
-    // Calculate frame inner edges for slide start/end positions
+    // Calculate positions for slide animation
+    // Characters need to start/end FULLY outside the visible frame area
+    // Add buffer to account for character width (origin is center)
     const frameX = LAYOUT.characterSelect.background.x;
     const innerHalfWidth = INNER_WIDTH / 2;
-    const leftEdge = frameX - innerHalfWidth;
-    const rightEdge = frameX + innerHalfWidth;
+    const characterBuffer = 200; // Extra distance to ensure character is fully hidden
 
-    // New character enters from the edge the user is sliding toward
+    const leftHidden = frameX - innerHalfWidth - characterBuffer;  // Fully hidden left
+    const rightHidden = frameX + innerHalfWidth + characterBuffer; // Fully hidden right
+    const centerX = LAYOUT.characterSelect.portrait.x;
+
     // direction > 0 means clicking right arrow, so new char comes from RIGHT
     // direction < 0 means clicking left arrow, so new char comes from LEFT
-    const startX = direction > 0 ? rightEdge : leftEdge;
-    const exitX = direction > 0 ? leftEdge : rightEdge;
+    const startX = direction > 0 ? rightHidden : leftHidden;
+    const exitX = direction > 0 ? leftHidden : rightHidden;
 
-    // Create new character image at the frame edge (will be masked/hidden initially)
+    // Create new character image fully outside the frame (hidden by mask)
     const newImage = this.add.image(startX, LAYOUT.characterSelect.portrait.y, newChar.selectKey);
     newImage.setOrigin(0.5, 0.5);
     newImage.setDepth(DEPTH_CHARACTER);
     newImage.setMask(this.characterMask);
 
-    // Animate old image out toward the opposite edge
+    // Animate both characters simultaneously - old exits, new enters
     this.tweens.add({
       targets: this.characterImage,
       x: exitX,
@@ -199,10 +203,9 @@ export class CharacterSelectScene extends Phaser.Scene {
       },
     });
 
-    // Animate new image in to center
     this.tweens.add({
       targets: newImage,
-      x: LAYOUT.characterSelect.portrait.x,
+      x: centerX,
       duration: CHARACTER_SLIDE_MS,
       ease: 'Quad.easeInOut',
     });
