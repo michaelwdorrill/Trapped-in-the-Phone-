@@ -159,11 +159,11 @@ export class NativeTextInput {
     const innerWidth = this.gameWidth - (this.padding * 2);
     const innerHeight = this.gameHeight - (this.padding * 2);
 
-    // Calculate position relative to canvas
+    // Calculate position relative to game-container (not viewport)
     // gameX and gameY are center coordinates, so adjust for that
-    // Add padding offset to position
-    const screenX = canvasRect.left + (this.gameX - innerWidth / 2) * scaleX;
-    const screenY = canvasRect.top + (this.gameY - innerHeight / 2) * scaleY;
+    // The input is appended to game-container, so position relative to 0,0 of container
+    const screenX = (this.gameX - innerWidth / 2) * scaleX;
+    const screenY = (this.gameY - innerHeight / 2) * scaleY;
     const screenWidth = innerWidth * scaleX;
     const screenHeight = innerHeight * scaleY;
 
