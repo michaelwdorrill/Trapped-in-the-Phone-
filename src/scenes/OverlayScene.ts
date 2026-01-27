@@ -121,6 +121,7 @@ export class OverlayScene extends Phaser.Scene {
 
     // Start fading in
     this.fadeState = 'fading_in';
+    this.lastTime = 0; // Reset so first frame uses default delta
     console.log('[OverlayScene] Fade in started, fadeProgress:', this.fadeProgress);
   }
 
@@ -213,6 +214,7 @@ export class OverlayScene extends Phaser.Scene {
     // Start manual fade out (handled in update())
     this.fadeState = 'fading_out';
     this.fadeProgress = this.fadeRect.alpha; // Start from current alpha
+    this.lastTime = 0; // Reset so first frame uses default delta
     console.log('[OverlayScene] Starting manual fade out, fadeProgress:', this.fadeProgress);
   }
 
@@ -227,6 +229,7 @@ export class OverlayScene extends Phaser.Scene {
     this.fadeRect.setAlpha(1);
     this.fadeProgress = 1;
     this.fadeState = 'fading_in';
+    this.lastTime = 0; // Reset so first frame uses default delta
     this.isTransitioning = true;
     console.log('[OverlayScene] fadeFromBlack - starting manual fade in');
   }
@@ -255,6 +258,7 @@ export class OverlayScene extends Phaser.Scene {
     this.fadeRect.setAlpha(1);
     this.fadeProgress = 1;
     this.fadeState = 'fading_in';
+    this.lastTime = 0; // Reset so first frame uses default delta
     console.log('[OverlayScene] Starting manual fade in from black');
   }
 }
