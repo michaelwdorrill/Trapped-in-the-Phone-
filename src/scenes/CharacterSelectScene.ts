@@ -11,6 +11,12 @@ import { spawnRainbowBurst } from '../fx/RainbowBurst';
 import { BackgroundScene } from './BackgroundScene';
 import { OverlayScene } from './OverlayScene';
 
+// Depth constants for proper layering
+const DEPTH_PORTRAIT_BG = 10;    // Yellow background fill behind character
+const DEPTH_CHARACTER = 20;      // Character portrait
+const DEPTH_FRAME = 30;          // Frame border on top (masks character when sliding)
+const DEPTH_UI = 40;             // Arrows, buttons, etc.
+
 export class CharacterSelectScene extends Phaser.Scene {
   private currentIndex: number = 0;
   private characterImage!: Phaser.GameObjects.Image;
@@ -35,10 +41,9 @@ export class CharacterSelectScene extends Phaser.Scene {
     const overlayScene = this.scene.get('OverlayScene') as OverlayScene;
     overlayScene.setMaximizeVisible(true);
 
-    // Safety net: ensure input unlocks after transition
-    this.time.delayedCall(200, () => {
-      InputLock.unlock();
-    });
+    // Reset transition state and unlock input (safety net)
+    overlayScene.resetTransitionState();
+    InputLock.unlock();
 
     // Ensure BGM is playing
     if (AudioManager.getCurrentBgmKey() !== 'bgm_shuffle') {
@@ -54,9 +59,9 @@ export class CharacterSelectScene extends Phaser.Scene {
       LAYOUT.characterSelect.title.x,
       LAYOUT.characterSelect.title.y,
       'cs_title'
-    ).setOrigin(0.5, 0.5);
+    ).setOrigin(0.5, 0.5).setDepth(DEPTH_UI);
 
-    // Name input field
+    // Name input field (temporarily hidden - will position based on new mockup)
     const nameLayout = LAYOUT.characterSelect.nameInput;
     this.nameInput = new NativeTextInput({
       scene: this,
@@ -72,14 +77,14 @@ export class CharacterSelectScene extends Phaser.Scene {
       },
     });
 
-    // Background frame
+    // Portrait background fill (behind character)
     this.add.image(
       LAYOUT.characterSelect.background.x,
       LAYOUT.characterSelect.background.y,
       'cs_bg'
-    ).setOrigin(0.5, 0.5);
+    ).setOrigin(0.5, 0.5).setDepth(DEPTH_PORTRAIT_BG);
 
-    // Character portrait
+    // Character portrait (middle layer)
     const currentChar = CHARACTERS[this.currentIndex];
     this.characterImage = this.add.image(
       LAYOUT.characterSelect.portrait.x,
@@ -87,6 +92,18 @@ export class CharacterSelectScene extends Phaser.Scene {
       currentChar.selectKey
     );
     this.characterImage.setOrigin(0.5, 0.5);
+    this.characterImage.setDepth(DEPTH_CHARACTER);
+
+    // Frame overlay (on top of character - needs transparent center)
+    // This will mask the character when sliding. Asset key: 'cs_frame'
+    // If asset doesn't exist yet, this will be a no-op
+    if (this.textures.exists('cs_frame')) {
+      this.add.image(
+        LAYOUT.characterSelect.background.x,
+        LAYOUT.characterSelect.background.y,
+        'cs_frame'
+      ).setOrigin(0.5, 0.5).setDepth(DEPTH_FRAME);
+    }
 
     // Left arrow button (with custom handling for slide animation)
     this.leftArrowBtn = new ImageButton({
@@ -97,6 +114,7 @@ export class CharacterSelectScene extends Phaser.Scene {
       callback: () => this.changeCharacter(-1),
       skipBurst: true,
     });
+    this.leftArrowBtn.image.setDepth(DEPTH_UI);
 
     // Right arrow button
     this.rightArrowBtn = new ImageButton({
@@ -107,6 +125,7 @@ export class CharacterSelectScene extends Phaser.Scene {
       callback: () => this.changeCharacter(1),
       skipBurst: true,
     });
+    this.rightArrowBtn.image.setDepth(DEPTH_UI);
 
     // Select button
     this.selectBtn = new ImageButton({
@@ -116,6 +135,7 @@ export class CharacterSelectScene extends Phaser.Scene {
       texture: 'cs_select',
       callback: () => this.onSelect(),
     });
+    this.selectBtn.image.setDepth(DEPTH_UI);
   }
 
   private changeCharacter(direction: number): void {
@@ -135,6 +155,7 @@ export class CharacterSelectScene extends Phaser.Scene {
     const startX = direction > 0 ? GAME_W + 150 : -150;
     const newImage = this.add.image(startX, LAYOUT.characterSelect.portrait.y, newChar.selectKey);
     newImage.setOrigin(0.5, 0.5);
+    newImage.setDepth(DEPTH_CHARACTER);
 
     // Slide out old image, slide in new image
     const exitX = direction > 0 ? -150 : GAME_W + 150;
