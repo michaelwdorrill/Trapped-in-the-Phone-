@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_W, CHARACTER_SLIDE_MS } from '../config/constants';
+import { CHARACTER_SLIDE_MS } from '../config/constants';
 import { LAYOUT } from '../config/layout';
 import { CHARACTERS, getCharacterIndex } from '../config/characters';
 import { GameState } from '../state/GameState';
@@ -17,6 +17,13 @@ const DEPTH_CHARACTER = 20;      // Character portrait
 const DEPTH_FRAME = 30;          // Frame border on top (masks character when sliding)
 const DEPTH_UI = 40;             // Arrows, buttons, etc.
 
+// Frame dimensions (350x575 with 25px border = 300x525 inner area)
+const FRAME_WIDTH = 350;
+const FRAME_HEIGHT = 575;
+const FRAME_BORDER = 25;
+const INNER_WIDTH = FRAME_WIDTH - (FRAME_BORDER * 2);   // 300
+const INNER_HEIGHT = FRAME_HEIGHT - (FRAME_BORDER * 2); // 525
+
 export class CharacterSelectScene extends Phaser.Scene {
   private currentIndex: number = 0;
   private characterImage!: Phaser.GameObjects.Image;
@@ -25,6 +32,8 @@ export class CharacterSelectScene extends Phaser.Scene {
   private selectBtn!: ImageButton;
   private nameInput!: NativeTextInput;
   private isAnimating: boolean = false;
+  private characterMask!: Phaser.Display.Masks.GeometryMask;
+  private maskGraphics!: Phaser.GameObjects.Graphics;
 
   constructor() {
     super({ key: 'CharacterSelectScene' });
@@ -77,14 +86,21 @@ export class CharacterSelectScene extends Phaser.Scene {
       },
     });
 
-    // Portrait background fill (behind character)
-    this.add.image(
-      LAYOUT.characterSelect.background.x,
-      LAYOUT.characterSelect.background.y,
-      'cs_bg'
-    ).setOrigin(0.5, 0.5).setDepth(DEPTH_PORTRAIT_BG);
+    // Portrait background fill (behind character) - now using cs_bg as the frame
+    // The inner area will be transparent, showing the scene background through it
 
-    // Character portrait (middle layer)
+    // Create geometry mask for the inner frame area (clips characters during slide)
+    const frameX = LAYOUT.characterSelect.background.x;
+    const frameY = LAYOUT.characterSelect.background.y;
+    const innerLeft = frameX - (INNER_WIDTH / 2);
+    const innerTop = frameY - (INNER_HEIGHT / 2);
+
+    this.maskGraphics = this.make.graphics({ x: 0, y: 0 });
+    this.maskGraphics.fillStyle(0xffffff);
+    this.maskGraphics.fillRect(innerLeft, innerTop, INNER_WIDTH, INNER_HEIGHT);
+    this.characterMask = this.maskGraphics.createGeometryMask();
+
+    // Character portrait (middle layer) - masked to inner frame area
     const currentChar = CHARACTERS[this.currentIndex];
     this.characterImage = this.add.image(
       LAYOUT.characterSelect.portrait.x,
@@ -93,10 +109,9 @@ export class CharacterSelectScene extends Phaser.Scene {
     );
     this.characterImage.setOrigin(0.5, 0.5);
     this.characterImage.setDepth(DEPTH_CHARACTER);
+    this.characterImage.setMask(this.characterMask);
 
-    // Frame overlay (on top of character - needs transparent center)
-    // This will mask the character when sliding. Asset key: 'cs_frame'
-    // If asset doesn't exist yet, this will be a no-op
+    // Frame overlay (on top of character)
     if (this.textures.exists('cs_frame')) {
       this.add.image(
         LAYOUT.characterSelect.background.x,
@@ -151,16 +166,25 @@ export class CharacterSelectScene extends Phaser.Scene {
     const newIndex = (this.currentIndex + direction + CHARACTERS.length) % CHARACTERS.length;
     const newChar = CHARACTERS[newIndex];
 
-    // Create new character image off-screen
-    const startX = direction > 0 ? GAME_W + 150 : -150;
+    // Calculate frame inner edges for slide start/end positions
+    const frameX = LAYOUT.characterSelect.background.x;
+    const innerHalfWidth = INNER_WIDTH / 2;
+    const leftEdge = frameX - innerHalfWidth;
+    const rightEdge = frameX + innerHalfWidth;
+
+    // New character enters from the edge the user is sliding toward
+    // direction > 0 means clicking right arrow, so new char comes from RIGHT
+    // direction < 0 means clicking left arrow, so new char comes from LEFT
+    const startX = direction > 0 ? rightEdge : leftEdge;
+    const exitX = direction > 0 ? leftEdge : rightEdge;
+
+    // Create new character image at the frame edge (will be masked/hidden initially)
     const newImage = this.add.image(startX, LAYOUT.characterSelect.portrait.y, newChar.selectKey);
     newImage.setOrigin(0.5, 0.5);
     newImage.setDepth(DEPTH_CHARACTER);
+    newImage.setMask(this.characterMask);
 
-    // Slide out old image, slide in new image
-    const exitX = direction > 0 ? -150 : GAME_W + 150;
-
-    // Animate old image out
+    // Animate old image out toward the opposite edge
     this.tweens.add({
       targets: this.characterImage,
       x: exitX,
@@ -175,7 +199,7 @@ export class CharacterSelectScene extends Phaser.Scene {
       },
     });
 
-    // Animate new image in
+    // Animate new image in to center
     this.tweens.add({
       targets: newImage,
       x: LAYOUT.characterSelect.portrait.x,
@@ -198,5 +222,8 @@ export class CharacterSelectScene extends Phaser.Scene {
     this.rightArrowBtn.destroy();
     this.selectBtn.destroy();
     this.nameInput.destroy();
+    if (this.maskGraphics) {
+      this.maskGraphics.destroy();
+    }
   }
 }
