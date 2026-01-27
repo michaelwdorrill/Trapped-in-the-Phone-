@@ -42,6 +42,9 @@ export class CharacterSelectScene extends Phaser.Scene {
     console.log('[CharacterSelectScene] create() called');
     this.isAnimating = false;
 
+    // Register shutdown handler for cleanup
+    this.events.on('shutdown', this.shutdown, this);
+
     // Show background and maximize button
     const bgScene = this.scene.get('BackgroundScene') as BackgroundScene;
     bgScene.setBackgroundVisible(true);
