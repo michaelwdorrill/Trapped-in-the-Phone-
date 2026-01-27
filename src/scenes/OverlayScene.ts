@@ -75,7 +75,7 @@ export class OverlayScene extends Phaser.Scene {
     InputLock.lock();
     console.log('[OverlayScene] Input locked');
 
-    // Stop all content scenes (not persistent ones)
+    // Content scenes list
     const contentScenes = [
       'LaunchScene',
       'IntroCutsceneScene',
@@ -84,27 +84,46 @@ export class OverlayScene extends Phaser.Scene {
       'CharacterSelectScene',
       'LevelSelectScene',
     ];
-    for (const sceneKey of contentScenes) {
-      if (sceneKey !== nextSceneKey) {
-        try {
-          this.scene.stop(sceneKey);
-        } catch (e) {
-          // Scene might not be running
+
+    // Phase 1: Fade to black
+    this.tweens.add({
+      targets: this.fadeRect,
+      alpha: 1,
+      duration: FADE_MS / 2,
+      ease: 'Linear',
+      onComplete: () => {
+        console.log('[OverlayScene] Fade out complete, switching scenes');
+
+        // Stop all content scenes except the next one
+        for (const sceneKey of contentScenes) {
+          if (sceneKey !== nextSceneKey) {
+            try {
+              this.scene.stop(sceneKey);
+            } catch (e) {
+              // Scene might not be running
+            }
+          }
         }
-      }
-    }
-    console.log('[OverlayScene] Stopped content scenes');
 
-    // Start next scene directly - no fade for debugging
-    console.log('[OverlayScene] Starting scene:', nextSceneKey);
-    this.scene.start(nextSceneKey, data);
-    console.log('[OverlayScene] scene.start called');
+        // Start next scene
+        console.log('[OverlayScene] Starting scene:', nextSceneKey);
+        this.scene.start(nextSceneKey, data);
 
-    // Unlock after brief delay
-    this.time.delayedCall(100, () => {
-      console.log('[OverlayScene] Unlocking input, resetting isTransitioning');
-      this.isTransitioning = false;
-      InputLock.unlock();
+        // Phase 2: Fade from black (after short delay to let scene initialize)
+        this.time.delayedCall(50, () => {
+          this.tweens.add({
+            targets: this.fadeRect,
+            alpha: 0,
+            duration: FADE_MS / 2,
+            ease: 'Linear',
+            onComplete: () => {
+              console.log('[OverlayScene] Fade in complete, unlocking');
+              this.isTransitioning = false;
+              InputLock.unlock();
+            },
+          });
+        });
+      },
     });
   }
 
