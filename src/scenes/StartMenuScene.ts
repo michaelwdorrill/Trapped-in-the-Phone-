@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { TITLE_PULSE_MIN, TITLE_PULSE_MAX, TITLE_PULSE_MS, FADE_MS } from '../config/constants';
+import { TITLE_PULSE_MIN, TITLE_PULSE_MAX, TITLE_PULSE_MS } from '../config/constants';
 import { LAYOUT } from '../config/layout';
 import { GameState } from '../state/GameState';
 import { AudioManager } from '../audio/AudioManager';
