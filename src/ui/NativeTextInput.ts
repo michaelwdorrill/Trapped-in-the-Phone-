@@ -11,6 +11,7 @@ export interface NativeTextInputConfig {
   maxLength?: number;
   initialValue?: string;
   fontSize?: number;
+  padding?: number; // Internal padding from edges
   onChange?: (value: string) => void;
   onSubmit?: (value: string) => void;
 }
@@ -22,8 +23,15 @@ export class NativeTextInput {
   private gameY: number;
   private gameWidth: number;
   private gameHeight: number;
+  private padding: number;
   private onChange?: (value: string) => void;
   private onSubmit?: (value: string) => void;
+
+  // Bound event handlers (stored so we can remove them later)
+  private boundHandleInput: () => void;
+  private boundHandleKeyDown: (e: KeyboardEvent) => void;
+  private boundHandleBlur: () => void;
+  private boundUpdatePosition: () => void;
 
   constructor(config: NativeTextInputConfig) {
     this.scene = config.scene;
@@ -31,6 +39,7 @@ export class NativeTextInput {
     this.gameY = config.y;
     this.gameWidth = config.width;
     this.gameHeight = config.height;
+    this.padding = config.padding ?? 0;
     this.onChange = config.onChange;
     this.onSubmit = config.onSubmit;
 
@@ -42,28 +51,35 @@ export class NativeTextInput {
     this.inputElement.value = config.initialValue ?? '';
 
     // Style the input - transparent so Phaser background shows through
-    const fontSize = config.fontSize ?? 24;
+    // Uses PressStart2P pixel font
+    const fontSize = config.fontSize ?? 16;
     this.inputElement.style.cssText = `
       position: absolute;
-      font-family: Arial, sans-serif;
+      font-family: 'PressStart2P', monospace;
       font-size: ${fontSize}px;
       text-align: center;
       border: none;
       border-radius: 0;
       background-color: transparent;
       color: #ffffff;
-      padding: 4px;
+      padding: 0;
       outline: none;
       box-sizing: border-box;
       -webkit-appearance: none;
       appearance: none;
-      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+      line-height: 1.2;
     `;
 
+    // Create bound handlers (so we can remove them later)
+    this.boundHandleInput = this.handleInput.bind(this);
+    this.boundHandleKeyDown = this.handleKeyDown.bind(this);
+    this.boundHandleBlur = this.handleBlur.bind(this);
+    this.boundUpdatePosition = this.updatePosition.bind(this);
+
     // Add event listeners
-    this.inputElement.addEventListener('input', this.handleInput.bind(this));
-    this.inputElement.addEventListener('keydown', this.handleKeyDown.bind(this));
-    this.inputElement.addEventListener('blur', this.handleBlur.bind(this));
+    this.inputElement.addEventListener('input', this.boundHandleInput);
+    this.inputElement.addEventListener('keydown', this.boundHandleKeyDown);
+    this.inputElement.addEventListener('blur', this.boundHandleBlur);
 
     // Add to DOM
     const container = document.getElementById('game-container');
@@ -77,10 +93,10 @@ export class NativeTextInput {
     this.updatePosition();
 
     // Listen for resize events to reposition
-    this.scene.scale.on('resize', this.updatePosition, this);
+    this.scene.scale.on('resize', this.boundUpdatePosition);
 
     // Also update on scene update in case of scale changes
-    this.scene.events.on('update', this.updatePosition, this);
+    this.scene.events.on('update', this.boundUpdatePosition);
   }
 
   private handleInput(): void {
@@ -113,18 +129,26 @@ export class NativeTextInput {
     const scaleX = canvasRect.width / GAME_W;
     const scaleY = canvasRect.height / GAME_H;
 
+    // Calculate inner dimensions (accounting for padding on each side)
+    const innerWidth = this.gameWidth - (this.padding * 2);
+    const innerHeight = this.gameHeight - (this.padding * 2);
+
     // Calculate position relative to canvas
     // gameX and gameY are center coordinates, so adjust for that
-    const screenX = canvasRect.left + (this.gameX - this.gameWidth / 2) * scaleX;
-    const screenY = canvasRect.top + (this.gameY - this.gameHeight / 2) * scaleY;
-    const screenWidth = this.gameWidth * scaleX;
-    const screenHeight = this.gameHeight * scaleY;
+    // Add padding offset to position
+    const screenX = canvasRect.left + (this.gameX - innerWidth / 2) * scaleX;
+    const screenY = canvasRect.top + (this.gameY - innerHeight / 2) * scaleY;
+    const screenWidth = innerWidth * scaleX;
+    const screenHeight = innerHeight * scaleY;
 
     this.inputElement.style.left = `${screenX}px`;
     this.inputElement.style.top = `${screenY}px`;
     this.inputElement.style.width = `${screenWidth}px`;
     this.inputElement.style.height = `${screenHeight}px`;
-    this.inputElement.style.fontSize = `${Math.floor(18 * Math.min(scaleX, scaleY))}px`;
+
+    // Scale font size with canvas, using PressStart2P which is a pixel font
+    const baseFontSize = 14;
+    this.inputElement.style.fontSize = `${Math.floor(baseFontSize * Math.min(scaleX, scaleY))}px`;
   }
 
   getValue(): string {
@@ -148,12 +172,16 @@ export class NativeTextInput {
   }
 
   destroy(): void {
-    this.scene.scale.off('resize', this.updatePosition, this);
-    this.scene.events.off('update', this.updatePosition, this);
-    this.inputElement.removeEventListener('input', this.handleInput.bind(this));
-    this.inputElement.removeEventListener('keydown', this.handleKeyDown.bind(this));
-    this.inputElement.removeEventListener('blur', this.handleBlur.bind(this));
+    // Remove Phaser event listeners
+    this.scene.scale.off('resize', this.boundUpdatePosition);
+    this.scene.events.off('update', this.boundUpdatePosition);
 
+    // Remove DOM event listeners
+    this.inputElement.removeEventListener('input', this.boundHandleInput);
+    this.inputElement.removeEventListener('keydown', this.boundHandleKeyDown);
+    this.inputElement.removeEventListener('blur', this.boundHandleBlur);
+
+    // Remove from DOM
     if (this.inputElement.parentNode) {
       this.inputElement.parentNode.removeChild(this.inputElement);
     }
