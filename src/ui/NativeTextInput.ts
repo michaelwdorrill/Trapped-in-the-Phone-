@@ -41,22 +41,23 @@ export class NativeTextInput {
     this.inputElement.maxLength = config.maxLength ?? 12;
     this.inputElement.value = config.initialValue ?? '';
 
-    // Style the input
+    // Style the input - transparent so Phaser background shows through
     const fontSize = config.fontSize ?? 24;
     this.inputElement.style.cssText = `
       position: absolute;
       font-family: Arial, sans-serif;
       font-size: ${fontSize}px;
       text-align: center;
-      border: 3px solid #ffffff;
-      border-radius: 8px;
-      background-color: rgba(0, 0, 0, 0.7);
+      border: none;
+      border-radius: 0;
+      background-color: transparent;
       color: #ffffff;
-      padding: 8px;
+      padding: 4px;
       outline: none;
       box-sizing: border-box;
       -webkit-appearance: none;
       appearance: none;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
     `;
 
     // Add event listeners
