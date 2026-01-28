@@ -39,15 +39,11 @@ export class OverlayScene extends Phaser.Scene {
       this.fadeOverlay.remove();
     }
 
-    // Create a div that covers the game container
+    // Create a div that covers only the game canvas (not the container's black bars)
     this.fadeOverlay = document.createElement('div');
     this.fadeOverlay.id = 'fade-overlay';
     this.fadeOverlay.style.cssText = `
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
       background-color: black;
       opacity: 0;
       pointer-events: none;
@@ -60,7 +56,33 @@ export class OverlayScene extends Phaser.Scene {
     if (container) {
       container.appendChild(this.fadeOverlay);
     }
+
+    // Position overlay to match canvas
+    this.updateOverlayPosition();
+
+    // Listen for resize to keep overlay matched to canvas
+    this.game.scale.on('resize', this.updateOverlayPosition, this);
   }
+
+  private updateOverlayPosition = (): void => {
+    if (!this.fadeOverlay) return;
+
+    const canvas = this.game.canvas;
+    const container = document.getElementById('game-container');
+    if (!canvas || !container) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const canvasRect = canvas.getBoundingClientRect();
+
+    // Calculate offset of canvas within container
+    const offsetX = canvasRect.left - containerRect.left;
+    const offsetY = canvasRect.top - containerRect.top;
+
+    this.fadeOverlay.style.left = `${offsetX}px`;
+    this.fadeOverlay.style.top = `${offsetY}px`;
+    this.fadeOverlay.style.width = `${canvasRect.width}px`;
+    this.fadeOverlay.style.height = `${canvasRect.height}px`;
+  };
 
   private toggleMaximize(): void {
     GameState.isMaximized = !GameState.isMaximized;

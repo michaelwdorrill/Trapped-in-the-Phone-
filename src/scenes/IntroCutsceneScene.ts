@@ -75,40 +75,43 @@ export class IntroCutsceneScene extends Phaser.Scene {
         // No more slides, end the cutscene
         this.endCutscene();
       } else {
-        // Wipe to next slide
-        this.wipeToSlide(nextIndex);
+        // Fade to next slide
+        this.fadeToSlide(nextIndex);
       }
     });
   }
 
-  private wipeToSlide(nextIndex: number): void {
+  private fadeToSlide(nextIndex: number): void {
     if (this.isSkipping || this.isEnding) return;
 
     const currentSlide = this.slides[this.currentSlideIndex];
     const nextSlide = this.slides[nextIndex];
-    const slideWidth = nextSlide.width;
 
-    // Position next slide and make visible, but crop it initially (from right edge)
+    // Set up next slide: visible but transparent, behind current slide
     nextSlide.setVisible(true);
-    nextSlide.setCrop(slideWidth, 0, 0, nextSlide.height);
+    nextSlide.setAlpha(0);
+    nextSlide.setDepth(0);
+    currentSlide.setDepth(1);
 
-    // Animate wipe from right to left
-    this.tweens.addCounter({
-      from: 0,
-      to: slideWidth,
+    // Cross-fade: fade out current while fading in next
+    this.tweens.add({
+      targets: currentSlide,
+      alpha: 0,
       duration: CUTSCENE_WIPE_MS,
       ease: 'Linear',
-      onUpdate: (tween) => {
-        const value = Math.floor(tween.getValue() ?? 0);
-        // Crop starts from (slideWidth - value) with width of value
-        nextSlide.setCrop(slideWidth - value, 0, value, nextSlide.height);
-      },
+    });
+
+    this.tweens.add({
+      targets: nextSlide,
+      alpha: 1,
+      duration: CUTSCENE_WIPE_MS,
+      ease: 'Linear',
       onComplete: () => {
         if (this.isSkipping || this.isEnding) return;
 
-        // Hide previous slide and clear crop on new slide
+        // Hide previous slide
         currentSlide.setVisible(false);
-        nextSlide.setCrop();
+        currentSlide.setAlpha(1); // Reset for potential reuse
         this.currentSlideIndex = nextIndex;
 
         // Schedule next transition
@@ -130,15 +133,16 @@ export class IntroCutsceneScene extends Phaser.Scene {
     // Get overlay scene reference BEFORE stopping this scene
     const overlayScene = this.scene.get('OverlayScene') as OverlayScene;
 
-    // Create a black rectangle for wipe transition (from right)
-    const blackRect = this.add.rectangle(GAME_W, GAME_H / 2, 0, GAME_H, 0x000000);
-    blackRect.setOrigin(1, 0.5);  // Origin on right side
+    // Create a black rectangle for fade transition
+    const blackRect = this.add.rectangle(GAME_W / 2, GAME_H / 2, GAME_W, GAME_H, 0x000000);
+    blackRect.setOrigin(0.5, 0.5);
     blackRect.setDepth(100);
+    blackRect.setAlpha(0);
 
-    // Wipe black in from right to left
+    // Fade to black
     this.tweens.add({
       targets: blackRect,
-      width: GAME_W,
+      alpha: 1,
       duration: CUTSCENE_WIPE_MS,
       ease: 'Linear',
       onComplete: () => {

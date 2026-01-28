@@ -11,7 +11,23 @@ class AudioManagerClass {
   init(scene: Phaser.Scene): void {
     this.scene = scene;
     this.initialized = true;
+
+    // Listen for visibility changes to resume audio when user returns
+    document.addEventListener('visibilitychange', this.handleVisibilityChange);
   }
+
+  private handleVisibilityChange = (): void => {
+    if (document.visibilityState === 'visible' && this.scene) {
+      // Resume audio context when tab becomes visible again
+      const soundManager = this.scene.sound;
+      if (soundManager && 'context' in soundManager) {
+        const context = (soundManager as Phaser.Sound.WebAudioSoundManager).context;
+        if (context && context.state === 'suspended') {
+          context.resume();
+        }
+      }
+    }
+  };
 
   playBgm(key: string, loop: boolean = true, restartIfSame: boolean = false): void {
     if (!this.scene || !this.initialized) return;
