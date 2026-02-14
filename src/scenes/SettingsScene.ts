@@ -2,7 +2,6 @@ import Phaser from 'phaser';
 import { LAYOUT } from '../config/layout';
 import { GameState } from '../state/GameState';
 import { AudioManager } from '../audio/AudioManager';
-import { InputLock } from '../utils/InputLock';
 import { ImageButton } from '../ui/ImageButton';
 import { Slider } from '../ui/Slider';
 import { BackgroundScene } from './BackgroundScene';
@@ -19,16 +18,13 @@ export class SettingsScene extends Phaser.Scene {
 
   create(): void {
     console.log('[SettingsScene] create() called');
-    // Show background and maximize button
+    // Show background without phone frame (we're "inside" the phone)
     const bgScene = this.scene.get('BackgroundScene') as BackgroundScene;
     bgScene.setBackgroundVisible(true);
+    bgScene.setPhoneFrameVisible(false);
 
     const overlayScene = this.scene.get('OverlayScene') as OverlayScene;
     overlayScene.setMaximizeVisible(true);
-
-    // Reset transition state and unlock input (safety net)
-    overlayScene.resetTransitionState();
-    InputLock.unlock();
 
     // Do NOT change BGM - keep whatever is playing
 
@@ -94,7 +90,9 @@ export class SettingsScene extends Phaser.Scene {
   private onBack(): void {
     const returnScene = GameState.returnSceneKey || 'StartMenuScene';
     const overlayScene = this.scene.get('OverlayScene') as OverlayScene;
-    overlayScene.transitionTo(returnScene);
+    // Pass fromInside flag so StartMenuScene knows to animate the phone zoom-in
+    const data = returnScene === 'StartMenuScene' ? { fromInside: true } : undefined;
+    overlayScene.transparentTransitionTo(returnScene, data);
   }
 
   shutdown(): void {

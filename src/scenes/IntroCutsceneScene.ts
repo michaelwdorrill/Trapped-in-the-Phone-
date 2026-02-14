@@ -46,8 +46,8 @@ export class IntroCutsceneScene extends Phaser.Scene {
   }
 
   private onTap(): void {
-    // Only allow skip if cutscene has been seen before
-    if (GameState.hasSeenIntroCutscene && !this.isSkipping && !this.isEnding) {
+    // Only allow skip if cutscene has been seen before and no transition is active
+    if (GameState.hasSeenIntroCutscene && !this.isSkipping && !this.isEnding && !InputLock.isLocked()) {
       this.skipCutscene();
     }
   }

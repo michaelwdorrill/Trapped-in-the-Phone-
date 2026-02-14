@@ -3,7 +3,6 @@ import { TITLE_PULSE_MIN, TITLE_PULSE_MAX, TITLE_PULSE_MS } from '../config/cons
 import { LAYOUT } from '../config/layout';
 import { GameState } from '../state/GameState';
 import { AudioManager } from '../audio/AudioManager';
-import { InputLock } from '../utils/InputLock';
 import { ImageButton } from '../ui/ImageButton';
 import { BackgroundScene } from './BackgroundScene';
 import { OverlayScene } from './OverlayScene';
@@ -17,17 +16,20 @@ export class StartMenuScene extends Phaser.Scene {
     super({ key: 'StartMenuScene' });
   }
 
-  create(): void {
-    // Show background and maximize button
+  create(data?: { fromInside?: boolean }): void {
     const bgScene = this.scene.get('BackgroundScene') as BackgroundScene;
     bgScene.setBackgroundVisible(true);
 
     const overlayScene = this.scene.get('OverlayScene') as OverlayScene;
     overlayScene.setMaximizeVisible(true);
 
-    // Reset transition state and unlock input (safety net)
-    overlayScene.resetTransitionState();
-    InputLock.unlock();
+    // If returning from inside the phone, animate phone frame zooming in
+    // Otherwise (first load / from cutscene), just show it normally
+    if (data?.fromInside) {
+      bgScene.startPhoneZoomIn();
+    } else {
+      bgScene.setPhoneFrameVisible(true);
+    }
 
     // Ensure BGM is playing (don't restart if already playing)
     if (AudioManager.getCurrentBgmKey() !== 'bgm_trapped') {
@@ -77,21 +79,24 @@ export class StartMenuScene extends Phaser.Scene {
     // Switch BGM to shuffle
     AudioManager.switchBgm('bgm_shuffle', 500, 500);
 
-    // Transition to character select
+    // Start phone zoom-out and transparent transition simultaneously
+    const bgScene = this.scene.get('BackgroundScene') as BackgroundScene;
     const overlayScene = this.scene.get('OverlayScene') as OverlayScene;
-    console.log('[StartMenuScene] Got overlay scene:', overlayScene);
-    overlayScene.transitionTo('CharacterSelectScene');
+
+    bgScene.startPhoneZoomOut();
+    overlayScene.transparentTransitionTo('CharacterSelectScene');
   }
 
   private onSettings(): void {
     console.log('[StartMenuScene] onSettings called');
-    // Set return scene
     GameState.returnSceneKey = 'StartMenuScene';
 
-    // Transition to settings
+    // Start phone zoom-out and transparent transition simultaneously
+    const bgScene = this.scene.get('BackgroundScene') as BackgroundScene;
     const overlayScene = this.scene.get('OverlayScene') as OverlayScene;
-    console.log('[StartMenuScene] Got overlay scene:', overlayScene);
-    overlayScene.transitionTo('SettingsScene');
+
+    bgScene.startPhoneZoomOut();
+    overlayScene.transparentTransitionTo('SettingsScene');
   }
 
   shutdown(): void {

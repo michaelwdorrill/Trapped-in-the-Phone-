@@ -16,12 +16,14 @@ const DEPTH_CHARACTER = 20;      // Character portrait
 const DEPTH_FRAME = 30;          // Frame border on top (masks character when sliding)
 const DEPTH_UI = 40;             // Arrows, buttons, etc.
 
-// Frame dimensions (350x575 with 25px border = 300x525 inner area)
+// Frame image is 350x576. The opaque black border ends 16px from each edge,
+// followed by a 4px semi-transparent shadow that renders over the character.
+// Mask starts at the shadow edge so character is flush with the black border.
 const FRAME_WIDTH = 350;
-const FRAME_HEIGHT = 575;
-const FRAME_BORDER = 25;
-const INNER_WIDTH = FRAME_WIDTH - (FRAME_BORDER * 2);   // 300
-const INNER_HEIGHT = FRAME_HEIGHT - (FRAME_BORDER * 2); // 525
+const FRAME_HEIGHT = 576;
+const CUTOUT_OFFSET = 16;
+const INNER_WIDTH = FRAME_WIDTH - (CUTOUT_OFFSET * 2);   // 318
+const INNER_HEIGHT = FRAME_HEIGHT - (CUTOUT_OFFSET * 2); // 544
 
 export class CharacterSelectScene extends Phaser.Scene {
   private currentIndex: number = 0;
@@ -45,16 +47,13 @@ export class CharacterSelectScene extends Phaser.Scene {
     // Register shutdown handler for cleanup
     this.events.on('shutdown', this.shutdown, this);
 
-    // Show background and maximize button
+    // Show background without phone frame (we're "inside" the phone)
     const bgScene = this.scene.get('BackgroundScene') as BackgroundScene;
     bgScene.setBackgroundVisible(true);
+    bgScene.setPhoneFrameVisible(false);
 
     const overlayScene = this.scene.get('OverlayScene') as OverlayScene;
     overlayScene.setMaximizeVisible(true);
-
-    // Reset transition state and unlock input (safety net)
-    overlayScene.resetTransitionState();
-    InputLock.unlock();
 
     // Ensure BGM is playing
     if (AudioManager.getCurrentBgmKey() !== 'bgm_shuffle') {
@@ -75,8 +74,12 @@ export class CharacterSelectScene extends Phaser.Scene {
     // Create geometry mask for the inner frame area (clips characters during slide)
     const frameX = LAYOUT.characterSelect.background.x;
     const frameY = LAYOUT.characterSelect.background.y;
-    const innerLeft = frameX - (INNER_WIDTH / 2);
-    const innerTop = frameY - (INNER_HEIGHT / 2);
+    // Frame image top-left in world coords (origin 0.5, 0.5)
+    const frameLeft = frameX - (FRAME_WIDTH / 2);
+    const frameTop = frameY - (FRAME_HEIGHT / 2);
+    // Inner cutout position: flush with the opaque black border edge
+    const innerLeft = frameLeft + CUTOUT_OFFSET;
+    const innerTop = frameTop + CUTOUT_OFFSET;
 
     this.maskGraphics = this.make.graphics({ x: 0, y: 0 });
     this.maskGraphics.fillStyle(0xffffff);
@@ -224,9 +227,9 @@ export class CharacterSelectScene extends Phaser.Scene {
     // Save selected character
     GameState.selectedCharacterId = CHARACTERS[this.currentIndex].id;
 
-    // Transition to level select
+    // Transparent transition to level select (grid stays visible)
     const overlayScene = this.scene.get('OverlayScene') as OverlayScene;
-    overlayScene.transitionTo('LevelSelectScene');
+    overlayScene.transparentTransitionTo('LevelSelectScene');
   }
 
   shutdown(): void {

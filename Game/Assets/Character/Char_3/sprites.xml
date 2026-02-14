@@ -1,4 +1,4 @@
 <TextureAtlas imagePath="sprites.png">
-	<SubTexture name="CharSelect.png" x="0" y="0" width="219" height="501"/>
-	<SubTexture name="LevelSelect.png" x="221" y="0" width="96" height="132"/>
+	<SubTexture name="CharSelect.png" x="0" y="0" width="318" height="544"/>
+	<SubTexture name="LevelSelect.png" x="0" y="546" width="118" height="118"/>
 </TextureAtlas>

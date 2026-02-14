@@ -27,13 +27,13 @@ export class Slider {
     this.scene = config.scene;
     this.onChange = config.onChange;
 
-    // Create background
-    this.bg = this.scene.add.image(config.x, config.y, config.bgTexture);
-    this.bg.setOrigin(0.5, 0.5);
-
-    // Create track
+    // Create track (bottom layer)
     this.track = this.scene.add.image(config.x, config.y, config.trackTexture);
     this.track.setOrigin(0.5, 0.5);
+
+    // Create background (middle layer, renders above track)
+    this.bg = this.scene.add.image(config.x, config.y, config.bgTexture);
+    this.bg.setOrigin(0.5, 0.5);
 
     // Create knob
     this.knob = this.scene.add.image(config.x, config.y, config.knobTexture);
@@ -108,8 +108,8 @@ export class Slider {
   }
 
   setDepth(depth: number): void {
-    this.bg.setDepth(depth);
-    this.track.setDepth(depth + 1);
+    this.track.setDepth(depth);
+    this.bg.setDepth(depth + 1);
     this.knob.setDepth(depth + 2);
   }
 

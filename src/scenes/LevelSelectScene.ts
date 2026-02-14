@@ -28,16 +28,13 @@ export class LevelSelectScene extends Phaser.Scene {
     // Register shutdown handler for cleanup
     this.events.on('shutdown', this.shutdown, this);
 
-    // Show background and maximize button
+    // Show background without phone frame (we're "inside" the phone)
     const bgScene = this.scene.get('BackgroundScene') as BackgroundScene;
     bgScene.setBackgroundVisible(true);
+    bgScene.setPhoneFrameVisible(false);
 
     const overlayScene = this.scene.get('OverlayScene') as OverlayScene;
     overlayScene.setMaximizeVisible(true);
-
-    // Reset transition state and unlock input (safety net)
-    overlayScene.resetTransitionState();
-    InputLock.unlock();
 
     // BGM should already be playing (bgm_shuffle), don't restart
 
@@ -48,14 +45,7 @@ export class LevelSelectScene extends Phaser.Scene {
       'ls_title'
     ).setOrigin(0.5, 0.5);
 
-    // Portrait frame (clickable to go back to character select)
-    this.portraitFrame = this.add.image(
-      LAYOUT.levelSelect.portraitFrame.x,
-      LAYOUT.levelSelect.portraitFrame.y,
-      'ls_frame'
-    ).setOrigin(0.5, 0.5);
-
-    // Character portrait (144x144, centered in 150x150 frame = 3px border)
+    // Character portrait (created first, renders behind frame)
     const selectedChar = getCharacterById(GameState.selectedCharacterId);
     if (selectedChar) {
       this.portrait = this.add.image(
@@ -68,6 +58,13 @@ export class LevelSelectScene extends Phaser.Scene {
       this.portrait.setInteractive({ useHandCursor: true });
       this.portrait.on('pointerdown', this.onPortraitClick, this);
     }
+
+    // Portrait frame (created second, renders on top of portrait)
+    this.portraitFrame = this.add.image(
+      LAYOUT.levelSelect.portraitFrame.x,
+      LAYOUT.levelSelect.portraitFrame.y,
+      'ls_frame'
+    ).setOrigin(0.5, 0.5);
 
     // Level buttons
     const levelConfigs = [
@@ -133,7 +130,7 @@ export class LevelSelectScene extends Phaser.Scene {
   private onSettings(): void {
     GameState.returnSceneKey = 'LevelSelectScene';
     const overlayScene = this.scene.get('OverlayScene') as OverlayScene;
-    overlayScene.transitionTo('SettingsScene');
+    overlayScene.transparentTransitionTo('SettingsScene');
   }
 
   private onAchievements(): void {
@@ -189,9 +186,9 @@ export class LevelSelectScene extends Phaser.Scene {
           ease: 'Quad.easeIn',
           onComplete: () => {
             this.isPortraitAnimating = false;
-            // Navigate back to character select
+            // Navigate back to character select (transparent, grid stays visible)
             const overlayScene = this.scene.get('OverlayScene') as OverlayScene;
-            overlayScene.transitionTo('CharacterSelectScene');
+            overlayScene.transparentTransitionTo('CharacterSelectScene');
           },
         });
       },
