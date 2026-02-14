@@ -37,6 +37,7 @@ export class NativeTextInput {
   private boundHandleKeyDown: (e: KeyboardEvent) => void;
   private boundHandleBlur: () => void;
   private boundUpdatePosition: () => void;
+  private boundHandleOutsideClick: (e: Event) => void;
 
   constructor(config: NativeTextInputConfig) {
     this.scene = config.scene;
@@ -101,11 +102,16 @@ export class NativeTextInput {
     this.boundHandleKeyDown = this.handleKeyDown.bind(this);
     this.boundHandleBlur = this.handleBlur.bind(this);
     this.boundUpdatePosition = this.updatePosition.bind(this);
+    this.boundHandleOutsideClick = this.handleOutsideClick.bind(this);
 
     // Add event listeners
     this.inputElement.addEventListener('input', this.boundHandleInput);
     this.inputElement.addEventListener('keydown', this.boundHandleKeyDown);
     this.inputElement.addEventListener('blur', this.boundHandleBlur);
+
+    // Listen for clicks/touches outside the input to blur it (dismisses mobile keyboard)
+    document.addEventListener('touchstart', this.boundHandleOutsideClick, true);
+    document.addEventListener('mousedown', this.boundHandleOutsideClick, true);
 
     // Add to DOM
     const container = document.getElementById('game-container');
@@ -144,6 +150,13 @@ export class NativeTextInput {
     // Optionally trigger onChange on blur
     if (this.onChange) {
       this.onChange(this.inputElement.value);
+    }
+  }
+
+  private handleOutsideClick(event: Event): void {
+    // If click/touch is outside the input, blur it to dismiss keyboard
+    if (event.target !== this.inputElement) {
+      this.inputElement.blur();
     }
   }
 
@@ -215,6 +228,8 @@ export class NativeTextInput {
     this.inputElement.removeEventListener('input', this.boundHandleInput);
     this.inputElement.removeEventListener('keydown', this.boundHandleKeyDown);
     this.inputElement.removeEventListener('blur', this.boundHandleBlur);
+    document.removeEventListener('touchstart', this.boundHandleOutsideClick, true);
+    document.removeEventListener('mousedown', this.boundHandleOutsideClick, true);
 
     // Remove input element from DOM
     if (this.inputElement.parentNode) {
